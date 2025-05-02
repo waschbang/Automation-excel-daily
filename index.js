@@ -6,71 +6,84 @@ const path = require('path');
 
 // Configuration
 const CUSTOMER_ID = "2426451";
-const PROFILE_ID = "6878551";
+const PROFILE_IDS = ["6886943"]; // Now properly defined as an array
 const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
-const SPREADSHEET_ID = "1qV9j-gp8ADN_tu3Qb9MQPnKit48_IrhamAzI-WCEEr8";
+const SPREADSHEET_ID = "10S8QaFXTIFCtLu_jNopsF27Zq77B1bx_aceqdYcrexk";
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+// Set to a date string like "2025-04-01" to start, and "2025-04-05" to end (inclusive)
+// If only one is set, fetch for that single day. If both are null, use today.
+const START_DATE = "2024-05-01"; // e.g. "2025-04-01"
+const END_DATE = "2025-05-01";   // e.g. "2025-04-05"
 
 // Sprout Social API endpoints
 const BASE_URL = "https://api.sproutsocial.com/v1";
-const PROFILES_URL = `${BASE_URL}/${CUSTOMER_ID}/profiles`;
+const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
+const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
 
 // Setup headers for Sprout Social API
-const getSproutHeaders = () => {
-  return {
-    "Authorization": `Bearer ${SPROUT_API_TOKEN}`,
-    "Content-Type": "application/json"
-  };
-};
+const getSproutHeaders = () => ({
+  "Authorization": `Bearer ${SPROUT_API_TOKEN}`,
+  "Content-Type": "application/json"
+});
 
-// Get profile data directly from API
-const getProfileData = async (profileId) => {
+// Get profile data from metadata endpoint
+const getProfileData = async () => {
   try {
-    const profileUrl = `${PROFILES_URL}/${profileId}`;
-    console.log(`[API CALL] Fetching profile data from: ${profileUrl}`);
-    const response = await axios.get(profileUrl, { headers: getSproutHeaders() });
-    console.log('[API RESPONSE] Profile data:', JSON.stringify(response.data, null, 2));
-    if (response.data && response.data.data) {
-      const profileData = response.data.data;
-      const network_type = profileData.network_type;
-      const name = profileData.name;
-      const network_id = profileData.network_id || profileData.id || profileId;
-      if (!network_type || !name || !network_id) {
-        console.warn('[WARNING] network_type, name, or network_id missing in profile data. Full response:', JSON.stringify(response.data, null, 2));
-      }
-      return {
-        network_type: network_type || '',
-        name: name || '',
-        network_id: network_id || '',
-        profile_id: profileId
-      };
+    console.log('[API CALL] Fetching profile metadata');
+    const response = await axios.get(METADATA_URL, { headers: getSproutHeaders() });
+    
+    if (!response.data || !response.data.data) {
+      throw new Error('Invalid metadata response');
     }
-    console.warn('[WARNING] Profile data not found in response. Full response:', JSON.stringify(response.data, null, 2));
-    return { network_type: '', name: '', network_id: '', profile_id: profileId };
+
+    console.log('Profile metadata API response:', JSON.stringify(response.data, null, 2));
+    
+    // Convert PROFILE_IDS to strings for comparison
+    const profileIdsToMatch = PROFILE_IDS.map(id => id.toString());
+    const profiles = response.data.data.filter(profile => 
+      profileIdsToMatch.includes(profile.customer_profile_id.toString())
+    );
+
+    if (profiles.length === 0) {
+      throw new Error('No matching profiles found in metadata');
+    }
+
+    return profiles.map(profile => ({
+      network_type: profile.network_type,
+      name: profile.name,
+      network_id: profile.native_id,
+      profile_id: profile.customer_profile_id.toString(),
+      native_name: profile.native_name,
+      link: profile.link
+    }));
   } catch (error) {
-    console.error(`[ERROR] Error fetching profile data: ${error.message}`);
+    console.error(`[ERROR] Error fetching profile metadata: ${error.message}`);
     if (error.response) {
       console.error('[API ERROR RESPONSE]', JSON.stringify(error.response.data, null, 2));
     }
-    return { network_type: '', name: '', network_id: '', profile_id: profileId };
+    throw error;
   }
 };
 
 // Get analytics data from Sprout Social API
-const getAnalyticsData = async (startDate, endDate) => {
+const getAnalyticsData = async (startDate, endDate, profileIds) => {
   const dateRange = `${startDate}...${endDate}`;
-  const analyticsUrl = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
+  const profileIdsStr = profileIds.join(', ');
   
-  // UPDATED: Added the new metrics you requested
+  console.log('Analytics Request Details:', {
+    dateRange,
+    profileIds,
+    profileIdsStr
+  });
+
   const payload = {
     "filters": [
-      `customer_profile_id.eq(${PROFILE_ID})`,
+      `customer_profile_id.eq(${profileIdsStr})`,
       `reporting_period.in(${dateRange})`
     ],
     "metrics": [
       "lifetime_snapshot.followers_count",
       "net_follower_growth",
-      "lifetime_snapshot.followers_by_age_gender",
       "followers_gained",
       "followers_lost",
       "posts_sent_count",
@@ -93,21 +106,16 @@ const getAnalyticsData = async (startDate, endDate) => {
   
   try {
     console.log(`Analytics API Request for ${dateRange}`);
-    
-    const response = await axios.post(
-      analyticsUrl, 
-      payload, 
-      { headers: getSproutHeaders() }
-    );
+    const response = await axios.post(ANALYTICS_URL, payload, { headers: getSproutHeaders() });
     
     if (!response.data || !response.data.data || response.data.data.length === 0) {
       console.warn(`No analytics data found for range ${dateRange}`);
       return null;
     }
     
+    console.log('Analytics Response Sample:', JSON.stringify(response.data.data[0], null, 2));
     console.log(`Received ${response.data.data.length} data points for range ${dateRange}`);
     return response.data;
-    
   } catch (error) {
     console.error(`Error getting analytics data: ${error.message}`);
     if (error.response) {
@@ -120,51 +128,63 @@ const getAnalyticsData = async (startDate, endDate) => {
   }
 };
 
-// Format analytics data for Google Sheets with new metrics and formulas
+// Format analytics data for Google Sheets
 const formatAnalyticsData = (dataPoint, profileData) => {
   try {
     if (!dataPoint || !dataPoint.metrics) {
-      console.error('Invalid data point received for formatting');
+      console.error('Invalid data point received for formatting:', dataPoint);
       return null;
     }
-    const date = dataPoint.reporting_period || new Date().toISOString().split('T')[0];
+
+    // Use dimensions.customer_profile_id for logging
+    const customerProfileId = dataPoint.dimensions && dataPoint.dimensions.customer_profile_id;
+
+    console.log('Formatting data point:', {
+      reporting_period: dataPoint.reporting_period,
+      customer_profile_id: customerProfileId,
+      metrics: Object.keys(dataPoint.metrics)
+    });
+
     const metrics = dataPoint.metrics;
-    const followers = metrics["lifetime_snapshot.followers_count"] || 0;
-    const impressions = metrics["impressions"] || 0;
-    const likes = metrics["likes"] || 0;
-    const comments = metrics["comments_count"] || 0;
-    const shares = metrics["shares_count"] || 0;
-    const saves = metrics["saves"] || 0;
-    const storyReplies = metrics["story_replies"] || 0;
-    const engagements = (
-      parseFloat(likes || 0) + 
-      parseFloat(comments || 0) + 
-      parseFloat(shares || 0) + 
-      parseFloat(saves || 0) + 
-      parseFloat(storyReplies || 0)
-    );
-    let engagementRatePerImpression = 0;
-    if (impressions && impressions > 0) {
-      engagementRatePerImpression = parseFloat(((engagements / impressions) * 100).toFixed(2));
+    // Use reporting period from dimensions
+    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
+    if (!reportingPeriod) {
+      console.error('No reporting period found in dataPoint:', dataPoint);
+      return null;
     }
+    const date = new Date(reportingPeriod).toISOString().split('T')[0];
+    
+    const engagements = (
+      parseFloat(metrics["likes"] || 0) + 
+      parseFloat(metrics["comments_count"] || 0) + 
+      parseFloat(metrics["shares_count"] || 0) + 
+      parseFloat(metrics["saves"] || 0) + 
+      parseFloat(metrics["story_replies"] || 0)
+    );
+
+    const impressions = metrics["impressions"] || 0;
+    const engagementRatePerImpression = impressions > 0 
+      ? parseFloat(((engagements / impressions) * 100).toFixed(2))
+      : 0;
+
     const row = [
       date,
       profileData.network_type,
       profileData.name,
       profileData.network_id,
       profileData.profile_id,
-      followers,
+      metrics["lifetime_snapshot.followers_count"] || 0,
       metrics["net_follower_growth"] || 0,
       metrics["followers_gained"] || 0,
       metrics["followers_lost"] || 0,
       metrics["posts_sent_count"] || 0,
       impressions,
       metrics["reactions"] || 0,
-      saves,
-      comments,
-      shares,
-      likes,
-      storyReplies,
+      metrics["saves"] || 0,
+      metrics["comments_count"] || 0,
+      metrics["shares_count"] || 0,
+      metrics["likes"] || 0,
+      metrics["story_replies"] || 0,
       metrics["impressions_unique"] || 0,
       metrics["net_following_growth"] || 0,
       metrics["video_views"] || 0,
@@ -173,9 +193,13 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       engagementRatePerImpression,
       metrics["net_follower_growth_percentage"] || 0
     ];
+
+    console.log('Formatted row:', row);
     return row;
   } catch (error) {
     console.error(`Error formatting analytics data: ${error.message}`);
+    console.error('Data point:', dataPoint);
+    console.error('Profile data:', profileData);
     return null;
   }
 };
@@ -275,31 +299,50 @@ const setupSheetHeaders = async (auth) => {
 };
 
 // Update Google Sheet with the data
-const updateSheet = async (auth, row) => {
-  if (!row) {
+const updateSheet = async (auth, rows) => {
+  if (!rows || rows.length === 0) {
     console.warn('No data to update in sheet');
     return false;
   }
+
   try {
+    console.log('Updating sheet with rows:', rows.length);
+    console.log('First row sample:', rows[0]);
+
     const response = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId: SPREADSHEET_ID,
       range: 'Sheet1!A:A',
     });
+
     const nextRow = (response.data.values ? response.data.values.length : 0) + 1;
-    await sheets.spreadsheets.values.update({
+    const lastRow = nextRow + rows.length - 1;
+    
+    console.log('Sheet update details:', {
+      nextRow,
+      lastRow,
+      columnCount: rows[0].length,
+      rowCount: rows.length
+    });
+
+    const updateResponse = await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId: SPREADSHEET_ID,
-      range: `Sheet1!A${nextRow}:${String.fromCharCode(65 + row.length - 1)}${nextRow}`,
+      range: `Sheet1!A${nextRow}:${String.fromCharCode(65 + rows[0].length - 1)}${lastRow}`,
       valueInputOption: 'RAW',
       resource: {
-        values: [row]
+        values: rows
       }
     });
-    console.log(`Data for ${row[0]} updated in row ${nextRow}`);
+
+    console.log('Sheet update response:', updateResponse.data);
+    console.log(`Updated ${rows.length} rows starting from row ${nextRow}`);
     return true;
   } catch (error) {
     console.error(`Error updating sheet: ${error.message}`);
+    if (error.response) {
+      console.error('Sheet API Error:', error.response.data);
+    }
     return false;
   }
 };
@@ -312,90 +355,87 @@ const main = async () => {
     if (!auth) {
       throw new Error('Failed to authenticate with Google Sheets');
     }
+
     await setupSheetHeaders(auth);
-    const profileData = await getProfileData(PROFILE_ID);
-    console.log('Using profile data:', profileData);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    const todayStr = today.toISOString().split('T')[0];
-    console.log(`Fetching analytics data for ${yesterdayStr}`);
-    const analyticsData = await getAnalyticsData(yesterdayStr, yesterdayStr);
-    if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
-      console.warn(`No analytics data available for ${yesterdayStr}`);
-      return;
+    const profiles = await getProfileData();
+    
+    if (!profiles || profiles.length === 0) {
+      throw new Error('No profiles found to process');
     }
-    for (const dataPoint of analyticsData.data) {
-      const formattedRow = formatAnalyticsData(dataPoint, profileData);
-      if (formattedRow) {
-        await updateSheet(auth, formattedRow);
+
+    // Determine date range to fetch
+    let datesToFetch = [];
+    if (START_DATE && END_DATE) {
+      // Generate all days between START_DATE and END_DATE (inclusive)
+      const start = new Date(START_DATE);
+      const end = new Date(END_DATE);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        datesToFetch.push(new Date(d).toISOString().split('T')[0]);
+      }
+    } else if (START_DATE) {
+      datesToFetch = [START_DATE];
+    } else {
+      datesToFetch = [(new Date()).toISOString().split('T')[0]];
+    }
+
+    for (const dateToUse of datesToFetch) {
+      console.log(`Fetching analytics data for ${dateToUse}`);
+      const analyticsData = await getAnalyticsData(
+        dateToUse, 
+        dateToUse,
+        profiles.map(p => p.profile_id)
+      );
+
+      if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
+        console.warn(`No analytics data returned for ${dateToUse}`);
+        continue;
+      }
+
+      const rowsForDate = [];
+      for (const dataPoint of analyticsData.data) {
+        // Use dimensions.customer_profile_id for mapping
+        const customerProfileId = dataPoint.dimensions && dataPoint.dimensions.customer_profile_id;
+        if (!customerProfileId) {
+          console.error('Data point missing dimensions.customer_profile_id:', dataPoint);
+          continue;
+        }
+
+        const profile = profiles.find(p => 
+          p.profile_id === customerProfileId.toString()
+        );
+
+        if (!profile) {
+          console.error(`No matching profile found for ID: ${customerProfileId}`);
+          continue;
+        }
+
+        const formattedRow = formatAnalyticsData(dataPoint, profile);
+        if (formattedRow) {
+          rowsForDate.push(formattedRow);
+        }
+      }
+      if (rowsForDate.length > 0) {
+        await updateSheet(auth, rowsForDate);
+        console.log(`Updated sheet for ${dateToUse}`);
+      } else {
+        console.warn(`No valid data rows to update for ${dateToUse}`);
       }
     }
-    console.log('Daily update completed successfully');
+
+    console.log('All dates processed and sheet updated.');
   } catch (error) {
     console.error(`Error in main function: ${error.message}`);
-  }
-};
-
-// Function to collect historical data
-const collectHistoricalData = async () => {
-  try {
-    console.log('Starting historical data collection...');
-    const auth = await getGoogleAuth();
-    if (!auth) {
-      throw new Error('Failed to authenticate with Google Sheets');
-    }
-    await setupSheetHeaders(auth);
-    const profileData = await getProfileData(PROFILE_ID);
-    console.log('Using profile data for historical collection:', profileData);
-    const startDate = new Date('2024-05-15');
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() - 1);
-    console.log('Historical Data Collection:', {
-      startDate: startDate.toISOString().split('T')[0],
-      endDate: endDate.toISOString().split('T')[0]
-    });
-    let currentStart = new Date(startDate);
-    while (currentStart <= endDate) {
-      let currentEnd = new Date(currentStart);
-      currentEnd.setDate(currentEnd.getDate() + 29);
-      if (currentEnd > endDate) {
-        currentEnd = new Date(endDate);
-      }
-      const startStr = currentStart.toISOString().split('T')[0];
-      const endStr = currentEnd.toISOString().split('T')[0];
-      console.log(`Processing historical data from ${startStr} to ${endStr}`);
-      const analyticsData = await getAnalyticsData(startStr, endStr);
-      if (analyticsData && analyticsData.data && analyticsData.data.length > 0) {
-        console.log(`Found ${analyticsData.data.length} data points for period ${startStr} to ${endStr}`);
-        for (const dataPoint of analyticsData.data) {
-          const formattedRow = formatAnalyticsData(dataPoint, profileData);
-          if (formattedRow) {
-            await updateSheet(auth, formattedRow);
-          }
-        }
-      } else {
-        console.log(`No data found for period ${startStr} to ${endStr}`);
-      }
-      currentStart.setDate(currentEnd.getDate() + 1);
-      await new Promise(resolve => setTimeout(resolve, 1000));
-    }
-    console.log('Historical data collection completed');
-  } catch (error) {
-    console.error(`Error collecting historical data: ${error.message}`);
+    console.error(error.stack);
   }
 };
 
 // Schedule regular runs
-const scheduleRuns = (intervalMinutes = 120) => {
-  console.log(`Scheduling runs every ${intervalMinutes} minutes`);
+const scheduleRuns = (intervalMinutes = 1) => {
+  console.log(`Scheduling runs every ${intervalMinutes} minute(s)`);
   setInterval(main, intervalMinutes * 60 * 1000);
 };
 
-// First collect historical data, then start regular updates
-collectHistoricalData().then(() => {
-  console.log('Starting regular updates');
-  main();
-  scheduleRuns();
-});
+// Only start regular updates (no historical data)
+console.log('Starting regular updates');
+main();
+scheduleRuns();
