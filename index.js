@@ -8,7 +8,7 @@ const path = require('path');
 const CUSTOMER_ID = "2426451";
 const PROFILE_IDS = ["6886943", "6909586", "6878551", "6886947", "6911594"];
 const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
-const SPREADSHEET_ID = "10S8QaFXTIFCtLu_jNopsF27Zq77B1bx_aceqdYcrexk";
+const SPREADSHEET_ID = "1N-T38KVDOb6Akr8x6uVMJ4G8y4KEXwxXetwr3ZdbBYg";
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const START_DATE = "2025-04-01"; // e.g. "2025-04-01"
 const END_DATE = "2025-05-01";   // e.g. "2025-04-05"
@@ -833,18 +833,18 @@ const formatFacebookAnalyticsData = (dataPoint, profileData) => {
       profileData ? profileData.name : '',
       profileData ? profileData.network_id : '',
       dataPoint.dimensions.customer_profile_id || '',
-      metrics['lifetime_snapshot.followers_count'] || 0,
-      metrics['net_follower_growth'] || 0,
-      metrics['followers_gained'] || 0,
-      metrics['followers_gained_organic'] || 0,
-      metrics['followers_gained_paid'] || 0,
-      metrics['followers_lost'] || 0,
+      safeNumber(metrics['lifetime_snapshot.followers_count']),
+      safeNumber(metrics['net_follower_growth']),
+      safeNumber(metrics['followers_gained']),
+      safeNumber(metrics['followers_gained_organic']),
+      safeNumber(metrics['followers_gained_paid']),
+      safeNumber(metrics['followers_lost']),
       safeNumber(metrics['lifetime_snapshot.fans_count']),
       safeNumber(metrics['fans_gained']),
       safeNumber(metrics['fans_gained_organic']),
       safeNumber(metrics['fans_gained_paid']),
       safeNumber(metrics['fans_lost']),
-      metrics['impressions'] || 0,
+      safeNumber(metrics['impressions']),
       safeNumber(metrics['impressions_organic']),
       safeNumber(metrics['impressions_viral']),
       safeNumber(metrics['impressions_nonviral']),
@@ -857,19 +857,19 @@ const formatFacebookAnalyticsData = (dataPoint, profileData) => {
       safeNumber(metrics['post_impressions_viral']),
       safeNumber(metrics['post_impressions_nonviral']),
       safeNumber(metrics['post_impressions_paid']),
-      metrics['impressions_unique'] || 0,
+      safeNumber(metrics['impressions_unique']),
       safeNumber(metrics['impressions_organic_unique']),
       safeNumber(metrics['impressions_viral_unique']),
       safeNumber(metrics['impressions_nonviral_unique']),
       safeNumber(metrics['impressions_paid_unique']),
-      metrics['reactions'] || 0,
-      metrics['comments_count'] || 0,
-      metrics['shares_count'] || 0,
-      metrics['post_link_clicks'] || 0,
-      metrics['post_content_clicks_other'] || 0,
+      safeNumber(metrics['reactions']),
+      safeNumber(metrics['comments_count']),
+      safeNumber(metrics['shares_count']),
+      safeNumber(metrics['post_link_clicks']),
+      safeNumber(metrics['post_content_clicks_other']),
       safeNumber(metrics['profile_actions']),
       safeNumber(metrics['post_engagements']),
-      metrics['video_views'] || 0,
+      safeNumber(metrics['video_views']),
       safeNumber(metrics['video_views_organic']),
       safeNumber(metrics['video_views_paid']),
       safeNumber(metrics['video_views_autoplay']),
@@ -890,9 +890,9 @@ const formatFacebookAnalyticsData = (dataPoint, profileData) => {
       safeNumber(metrics['video_views_partial_autoplay']),
       safeNumber(metrics['video_views_partial_click_to_play']),
       safeNumber(metrics['video_views_partial_repeat']),
-      metrics['posts_sent_count'] || 0,
-      metrics['posts_sent_by_post_type'] || 0,
-      metrics['posts_sent_by_content_type'] || 0,
+      safeNumber(metrics['posts_sent_count']),
+      safeNumber(metrics['posts_sent_by_post_type']),
+      safeNumber(metrics['posts_sent_by_content_type']),
       engagements,
       engagementRatePerImpression,
       engagementRatePerFollower,
@@ -1036,7 +1036,46 @@ const formatLinkedInAnalyticsData = (dataPoint, profileData) => {
 const updateLinkedinSheet = async (auth, rows) => updateSheet(auth, rows, LINKEDIN_SHEET_NAME);
 // --- End LinkedIn Support ---
 
-// Main function to run the data collection and update
+// Add this function before the main function
+const createSheetIfNotExists = async (auth, sheetName) => {
+  try {
+    // First check if sheet exists
+    const response = await sheets.spreadsheets.get({
+      auth,
+      spreadsheetId: SPREADSHEET_ID,
+    });
+
+    const sheetExists = response.data.sheets.some(sheet => 
+      sheet.properties.title === sheetName
+    );
+
+    if (!sheetExists) {
+      console.log(`Creating new sheet: ${sheetName}`);
+      await sheets.spreadsheets.batchUpdate({
+        auth,
+        spreadsheetId: SPREADSHEET_ID,
+        resource: {
+          requests: [{
+            addSheet: {
+              properties: {
+                title: sheetName
+              }
+            }
+          }]
+        }
+      });
+      console.log(`Successfully created sheet: ${sheetName}`);
+    } else {
+      console.log(`Sheet ${sheetName} already exists`);
+    }
+    return true;
+  } catch (error) {
+    console.error(`Error creating sheet ${sheetName}:`, error.message);
+    return false;
+  }
+};
+
+// Modify the main function to create sheets if they don't exist
 const main = async () => {
   try {
     console.log('Starting daily update process...');
@@ -1044,6 +1083,13 @@ const main = async () => {
     if (!auth) {
       throw new Error('Failed to authenticate with Google Sheets');
     }
+
+    // Create sheets if they don't exist
+    await createSheetIfNotExists(auth, INSTAGRAM_SHEET_NAME);
+    await createSheetIfNotExists(auth, YOUTUBE_SHEET_NAME);
+    await createSheetIfNotExists(auth, LINKEDIN_SHEET_NAME);
+    await createSheetIfNotExists(auth, FACEBOOK_SHEET_NAME);
+    await createSheetIfNotExists(auth, TWITTER_SHEET_NAME);
 
     await setupInstagramSheetHeaders(auth);
     await setupYoutubeSheetHeaders(auth);
