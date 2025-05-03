@@ -1,4 +1,5 @@
-require('dotenv').config();
+#!/usr/bin/env node
+
 const axios = require('axios');
 const { google } = require('googleapis');
 const sheets = google.sheets('v4');
@@ -6,18 +7,13 @@ const fs = require('fs');
 const path = require('path');
 
 // Configuration
-const CUSTOMER_ID = process.env.CUSTOMER_ID || "2426451";
-const PROFILE_IDS = (process.env.PROFILE_IDS || "6886943,6909586,6878551,6886947,6911594").split(",");
-const SPROUT_API_TOKEN = process.env.SPROUT_API_TOKEN;
-const SPREADSHEET_ID = process.env.SPREADSHEET_ID || "1N-T38KVDOb6Akr8x6uVMJ4G8y4KEXwxXetwr3ZdbBYg";
-const CREDENTIALS_PATH = process.env.CREDENTIALS_PATH || path.join(__dirname, 'credentials.json');
-const START_DATE = process.env.START_DATE || "2025-04-01";
-const END_DATE = process.env.END_DATE || "2025-05-01";
-
-// Validate required environment variables
-if (!SPROUT_API_TOKEN) {
-  throw new Error('SPROUT_API_TOKEN environment variable is required');
-}
+const CUSTOMER_ID = "2426451";
+const PROFILE_IDS = ["6886943", "6909586", "6878551", "6886947", "6911594"];
+const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
+const SPREADSHEET_ID = "10S8QaFXTIFCtLu_jNopsF27Zq77B1bx_aceqdYcrexk";
+const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+const START_DATE = "2025-04-01"; // e.g. "2025-04-01"
+const END_DATE = "2025-05-01";   // e.g. "2025-04-05"
 
 // Sprout Social API endpoints
 const BASE_URL = "https://api.sproutsocial.com/v1";
@@ -154,19 +150,6 @@ const getAnalyticsData = async (startDate, endDate, profileIds) => {
         "video_views_repeat",
         "video_view_time",
         "video_views_unique",
-        "video_views_30s_complete",
-        "video_views_30s_complete_organic",
-        "video_views_30s_complete_paid",
-        "video_views_30s_complete_autoplay",
-        "video_views_30s_complete_click_to_play",
-        "video_views_30s_complete_repeat",
-        "video_views_30s_complete_unique",
-        "video_views_partial",
-        "video_views_partial_organic",
-        "video_views_partial_paid",
-        "video_views_partial_autoplay",
-        "video_views_partial_click_to_play",
-        "video_views_partial_repeat",
         "posts_sent_count",
         "posts_sent_by_post_type",
         "posts_sent_by_content_type",
@@ -743,19 +726,6 @@ const FACEBOOK_HEADERS = [
   'Engagement Rate (per Follower)',
   'Click-Through Rate',
   'video_views_unique',
-  'video_views_30s_complete',
-  'video_views_30s_complete_organic',
-  'video_views_30s_complete_paid',
-  'video_views_30s_complete_autoplay',
-  'video_views_30s_complete_click_to_play',
-  'video_views_30s_complete_repeat',
-  'video_views_30s_complete_unique',
-  'video_views_partial',
-  'video_views_partial_organic',
-  'video_views_partial_paid',
-  'video_views_partial_autoplay',
-  'video_views_partial_click_to_play',
-  'video_views_partial_repeat',
   'posts_sent_count',
   'posts_sent_by_post_type',
   'posts_sent_by_content_type'

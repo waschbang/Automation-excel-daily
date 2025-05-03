@@ -1,0 +1,237 @@
+const path = require('path');
+
+// API & Authentication
+const CUSTOMER_ID = "2426451";
+
+// Profile IDs for each platform
+//profile id for schban
+// const INSTAGRAM_PROFILE_ID = "6886943";
+// const YOUTUBE_PROFILE_ID = "6909586";
+// const LINKEDIN_PROFILE_ID = "6878551";
+// const FACEBOOK_PROFILE_ID = "6886947";
+// const TWITTER_PROFILE_ID = "6911594";
+
+//profile id for Jio Hotstar  
+// const INSTAGRAM_PROFILE_ID = "7019526";
+// const YOUTUBE_PROFILE_ID = "7019528";
+// const LINKEDIN_PROFILE_ID = "";
+// const FACEBOOK_PROFILE_ID = "7019522";
+// const TWITTER_PROFILE_ID = "";
+
+//profile id for level super mind
+const INSTAGRAM_PROFILE_ID = "";
+const YOUTUBE_PROFILE_ID = "";
+const LINKEDIN_PROFILE_ID = "";
+const FACEBOOK_PROFILE_ID = "6994834";
+const TWITTER_PROFILE_ID = "";
+
+// Combined profile IDs for API calls
+const PROFILE_IDS = [
+  INSTAGRAM_PROFILE_ID,
+  YOUTUBE_PROFILE_ID,
+  LINKEDIN_PROFILE_ID,
+  FACEBOOK_PROFILE_ID,
+  TWITTER_PROFILE_ID
+];
+
+const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
+//for schbang
+// const SPREADSHEET_ID = "10S8QaFXTIFCtLu_jNopsF27Zq77B1bx_aceqdYcrexk";
+
+//for jio hotstar
+// const SPREADSHEET_ID = "1X6P847YVHk5mbBEiVIJEUsrBy7DTFhotlTIJtzH5WUE";
+
+//for level super mind
+const SPREADSHEET_ID = "1k5wbhi-v_McP-Po-acgrFx0jl1BMCPxXfU1Efv-lGT4";
+
+
+const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
+// Date Range for Analytics
+const START_DATE = "2024-01-01";
+const END_DATE = "2025-05-01";
+
+// Sprout Social API endpoints
+const BASE_URL = "https://api.sproutsocial.com/v1";
+const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
+const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
+
+// ===================================
+// Import Modules
+// ===================================
+const apiUtils = require('./utils/api');
+const sheetsUtils = require('./utils/sheets');
+
+// Import platform modules
+const instagram = require('./platforms/instagram');
+const youtube = require('./platforms/youtube');
+const linkedin = require('./platforms/linkedin');
+const facebook = require('./platforms/facebook');
+const twitter = require('./platforms/twitter');
+
+/**
+ * Main function to process analytics data and update Google Sheets
+ */
+const main = async () => {
+  try {
+    // Authenticate with Google Sheets
+    const auth = await sheetsUtils.getGoogleAuth(CREDENTIALS_PATH);
+    console.log('Successfully authenticated with Google Sheets API');
+    
+    // Create sheets if they don't exist
+    await Promise.all([
+      sheetsUtils.createSheetIfNotExists(auth, SPREADSHEET_ID, instagram.SHEET_NAME),
+      sheetsUtils.createSheetIfNotExists(auth, SPREADSHEET_ID, youtube.SHEET_NAME),
+      sheetsUtils.createSheetIfNotExists(auth, SPREADSHEET_ID, linkedin.SHEET_NAME),
+      sheetsUtils.createSheetIfNotExists(auth, SPREADSHEET_ID, facebook.SHEET_NAME),
+      sheetsUtils.createSheetIfNotExists(auth, SPREADSHEET_ID, twitter.SHEET_NAME)
+    ]);
+    
+    // Setup sheet headers
+    await Promise.all([
+      instagram.setupHeaders(sheetsUtils, auth, SPREADSHEET_ID),
+      youtube.setupHeaders(sheetsUtils, auth, SPREADSHEET_ID),
+      linkedin.setupHeaders(sheetsUtils, auth, SPREADSHEET_ID),
+      facebook.setupHeaders(sheetsUtils, auth, SPREADSHEET_ID),
+      twitter.setupHeaders(sheetsUtils, auth, SPREADSHEET_ID)
+    ]);
+    
+    // Calculate dynamic date range for updates
+    // For the first run, use the full date range
+    // For subsequent runs, use the last 7 days to ensure we have the latest data
+    const now = new Date();
+    const lastWeek = new Date(now);
+    lastWeek.setDate(now.getDate() - 7);
+    
+    // Format dates as YYYY-MM-DD
+    const formatDate = (date) => {
+      return date.toISOString().split('T')[0];
+    };
+    
+    // Use the full date range for the initial run, then use a rolling 7-day window for updates
+    const isFirstRun = !global.lastUpdateTime;
+    const startDateToUse = isFirstRun ? START_DATE : formatDate(lastWeek);
+    const endDateToUse = isFirstRun ? END_DATE : formatDate(now);
+    
+    // Track the last update time
+    global.lastUpdateTime = now;
+    
+    console.log(`Updating data for date range: ${startDateToUse} to ${endDateToUse}${isFirstRun ? ' (initial full range)' : ' (incremental update)'}`);    
+    
+    // Fetch profile metadata
+    console.log('[API CALL] Fetching profile metadata');
+    const profiles = await apiUtils.getProfileData(METADATA_URL, SPROUT_API_TOKEN, PROFILE_IDS);
+    
+    if (!profiles || profiles.length === 0) {
+      throw new Error('No profiles found to process');
+    }
+    
+    // Fetch all data for the entire date range with chunking to avoid rate limits
+    const analyticsData = await apiUtils.getAnalyticsData(
+      ANALYTICS_URL,
+      SPROUT_API_TOKEN,
+      startDateToUse,
+      endDateToUse,
+      profiles.map(p => p.profile_id)
+    );
+    
+    // Process data by platform
+    if (analyticsData && analyticsData.data && analyticsData.data.length > 0) {
+      // Initialize arrays for each platform
+      const instagramRows = [];
+      const youtubeRows = [];
+      const linkedinRows = [];
+      const facebookRows = [];
+      const twitterRows = [];
+      
+      // Group data points by profile ID
+      const dataByProfile = {};
+      
+      for (const dataPoint of analyticsData.data) {
+        const customerProfileId = dataPoint.dimensions && dataPoint.dimensions.customer_profile_id;
+        if (!customerProfileId) continue;
+        
+        if (!dataByProfile[customerProfileId]) {
+          dataByProfile[customerProfileId] = [];
+        }
+        dataByProfile[customerProfileId].push(dataPoint);
+      }
+      
+      // Process data for each profile
+      for (const profileId in dataByProfile) {
+        const profile = profiles.find(p => p.profile_id === profileId.toString());
+        if (!profile) continue;
+        
+        const dataPoints = dataByProfile[profileId];
+        
+        // Process data points for each platform
+        for (const dataPoint of dataPoints) {
+          // Format data for each platform
+          if (profile.profile_id === INSTAGRAM_PROFILE_ID) {
+            const row = instagram.formatAnalyticsData(dataPoint, profile);
+            if (row) instagramRows.push(row);
+          }
+          
+          if (profile.profile_id === YOUTUBE_PROFILE_ID) {
+            const row = youtube.formatAnalyticsData(dataPoint, profile);
+            if (row) youtubeRows.push(row);
+          }
+          
+          if (profile.profile_id === LINKEDIN_PROFILE_ID) {
+            const row = linkedin.formatAnalyticsData(dataPoint, profile);
+            if (row) linkedinRows.push(row);
+          }
+          
+          if (profile.profile_id === FACEBOOK_PROFILE_ID) {
+            const row = facebook.formatAnalyticsData(dataPoint, profile);
+            if (row) facebookRows.push(row);
+          }
+          
+          if (profile.profile_id === TWITTER_PROFILE_ID) {
+            const row = twitter.formatAnalyticsData(dataPoint, profile);
+            if (row) twitterRows.push(row);
+          }
+        }
+      }
+      
+      // Update all sheets in parallel
+      await Promise.all([
+        instagramRows.length > 0 ? instagram.updateSheet(sheetsUtils, auth, SPREADSHEET_ID, instagramRows) : Promise.resolve(),
+        youtubeRows.length > 0 ? youtube.updateSheet(sheetsUtils, auth, SPREADSHEET_ID, youtubeRows) : Promise.resolve(),
+        linkedinRows.length > 0 ? linkedin.updateSheet(sheetsUtils, auth, SPREADSHEET_ID, linkedinRows) : Promise.resolve(),
+        facebookRows.length > 0 ? facebook.updateSheet(sheetsUtils, auth, SPREADSHEET_ID, facebookRows) : Promise.resolve(),
+        twitterRows.length > 0 ? twitter.updateSheet(sheetsUtils, auth, SPREADSHEET_ID, twitterRows) : Promise.resolve()
+      ]);
+      
+      console.log(`Updated all sheets with data from ${startDateToUse} to ${endDateToUse}`);
+    } else {
+      console.warn('No analytics data found for the specified date range');
+    }
+  } catch (error) {
+    console.error(`Error in main process: ${error.message}`);
+    if (error.stack) {
+      console.error(error.stack);
+    }
+  }
+};
+
+/**
+ * Schedule runs at regular intervals
+ */
+const scheduleRuns = () => {
+  const MINUTES = 30; // Run every 30 minutes
+  console.log(`Scheduling runs every ${MINUTES} minute(s)`);
+  
+  // Run immediately
+  console.log(`[${new Date().toISOString()}] Starting initial update...`);
+  main().catch(err => console.error('Error in scheduled run:', err));
+  
+  // Schedule future runs
+  setInterval(() => {
+    console.log(`[${new Date().toISOString()}] Running scheduled update...`);
+    main().catch(err => console.error('Error in scheduled run:', err));
+  }, MINUTES * 60 * 1000);
+};
+
+// Start the process
+console.log('Starting regular updates');
+scheduleRuns();
