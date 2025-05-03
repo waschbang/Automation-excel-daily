@@ -5,6 +5,7 @@
  * ==============================================
  * This script fetches analytics data from Sprout Social API for all profiles in each group
  * and creates separate Google Sheets for each group with the data.
+ * Modified to save spreadsheets to multiple Drive folders.
  */
 
 const path = require('path');
@@ -31,12 +32,21 @@ const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04OD
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const DRIVE_CREDENTIALS_PATH = path.join(__dirname, 'drive-credentials.json');
 
-// Date range for analytics
-const START_DATE = '2025-01-01';
-const END_DATE = '2025-05-01';
-
-// Google Drive folder ID to save all spreadsheets
-const DRIVE_FOLDER_ID = '1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r';
+// Date ranges for analytics (different date ranges for each folder)
+const FOLDER_CONFIGS = [
+  {
+    folderId: '1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r',
+    startDate: '2025-01-01',
+    endDate: '2025-05-01',
+    description: 'Q1 2025'
+  },
+  {
+    folderId: '1OA82RSaq0On_ERovDsZYUqeoMByyWruP',
+    startDate: '2025-01-01',
+    endDate: '2025-05-01',
+    description: 'Q4 2024'
+  }
+];
 
 // Sprout Social API endpoints
 const BASE_URL = "https://api.sproutsocial.com/v1";
@@ -96,8 +106,8 @@ const saveDriveCredentials = () => {
     }
 
     // Write to drive credentials file
-  fs.writeFileSync(DRIVE_CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
-  console.log(`Drive credentials saved to ${DRIVE_CREDENTIALS_PATH}`);
+    fs.writeFileSync(DRIVE_CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+    console.log(`Drive credentials saved to ${DRIVE_CREDENTIALS_PATH}`);
   } catch (error) {
     console.error(`Failed to save drive credentials: ${error.message}`);
     console.error('Please ensure you have valid Google service account credentials in credentials.json');
@@ -155,7 +165,7 @@ const verifyDriveCredentials = async () => {
  * @param {string} groupId - Group ID
  * @param {string} groupName - Group name
  * @param {Array} profiles - Array of profiles in the group
- * @returns {Promise<void>}
+ * @returns {Promise<Array<Object>>} Array of spreadsheet details
  */
 const processGroupAnalytics = async (groupId, groupName, profiles) => {
   try {
@@ -168,155 +178,193 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       throw new Error('Failed to authenticate with Google Drive API');
     }
     
-    // Create a new spreadsheet for this group
-    const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${new Date().toISOString().split('T')[0]}`;
-    const spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID);
-    if (!spreadsheetId) {
-      throw new Error(`Failed to create spreadsheet for group ${groupName}`);
-    }
+    // Create spreadsheets in all specified folders with their respective date ranges
+    const results = [];
     
-    // Group profiles by network type
-    const profilesByNetwork = groupUtils.groupProfilesByNetworkType(profiles);
-    
-    // Create sheets for each network type that has profiles
-    const networkModules = {
-      instagram,
-      youtube,
-      linkedin,
-      facebook,
-      twitter
-    };
-    
-    // Keep track of which sheets we've created
-    const createdSheets = [];
-    
-    // Create sheets for each network type
-    for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
-      if (networkProfiles.length > 0) {
-        const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-        await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
-        createdSheets.push(sheetName);
-        
-        // Set up headers
-        const module = networkModules[networkType];
-        if (module && module.setupHeaders) {
-          await module.setupHeaders(sheetsUtils, auth, spreadsheetId);
-        }
-      }
-    }
-    
-    // Fetch analytics data for all profiles in this group
-    const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
-    console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName}`);
-    
-    const analyticsData = await apiUtils.getAnalyticsData(
-      ANALYTICS_URL,
-      SPROUT_API_TOKEN,
-      START_DATE,
-      END_DATE,
-      profileIds
-    );
-    
-    if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
-      console.warn(`No analytics data found for group ${groupName}`);
-      return;
-    }
-    
-    // Group data by profile and date
-    const dataByProfileAndDate = {};
-    
-    for (const dataPoint of analyticsData.data) {
-      const customerProfileId = dataPoint.dimensions?.customer_profile_id;
-      const reportingPeriod = dataPoint.dimensions?.['reporting_period.by(day)'] || dataPoint.dimensions?.reporting_period;
+    for (const folderConfig of FOLDER_CONFIGS) {
+      const { folderId, startDate, endDate, description } = folderConfig;
+      console.log(`Creating spreadsheet in folder: ${folderId} (${description}: ${startDate} to ${endDate})`);
       
-      if (!customerProfileId || !reportingPeriod) continue;
+      // Create a new spreadsheet for this group in this folder
+      const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${description} - ${new Date().toISOString().split('T')[0]}`;
+      const spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, folderId);
       
-      const date = new Date(reportingPeriod).toISOString().split('T')[0];
-      const key = `${customerProfileId}_${date}`;
-      
-      if (!dataByProfileAndDate[key]) {
-        dataByProfileAndDate[key] = {
-          profileId: customerProfileId,
-          date: date,
-          dataPoint: dataPoint
-        };
-      }
-    }
-    
-    // Process data for each profile
-    const rowsByNetwork = {
-      instagram: [],
-      youtube: [],
-      linkedin: [],
-      facebook: [],
-      twitter: []
-    };
-    
-    for (const { profileId, date, dataPoint } of Object.values(dataByProfileAndDate)) {
-      const profile = profiles.find(p => p.customer_profile_id === parseInt(profileId));
-      if (!profile) {
-        console.log(`Profile not found for ID: ${profileId}`);
-        continue;
+      if (!spreadsheetId) {
+        console.error(`Failed to create spreadsheet for group ${groupName} in folder ${folderId}`);
+        continue; // Skip to next folder if this one fails
       }
       
-      // Map network types to our simplified types
-      const networkTypeMapping = {
-        'linkedin_company': 'linkedin',
-        'fb_instagram_account': 'instagram',
-        'fb_page': 'facebook',
-        'youtube_channel': 'youtube',
-        'twitter_profile': 'twitter'
+      // Group profiles by network type
+      const profilesByNetwork = groupUtils.groupProfilesByNetworkType(profiles);
+      
+      // Create sheets for each network type that has profiles
+      const networkModules = {
+        instagram,
+        youtube,
+        linkedin,
+        facebook,
+        twitter
       };
       
-      // Get our simplified network type
-      const networkType = networkTypeMapping[profile.network_type] || profile.network_type.toLowerCase();
-      console.log(`Processing data for profile ${profile.name} (${profileId}) with network type: ${profile.network_type} → ${networkType}`);
+      // Keep track of which sheets we've created
+      const createdSheets = [];
       
-      const module = networkModules[networkType];
-      if (module && module.formatAnalyticsData) {
-        const row = module.formatAnalyticsData(dataPoint, profile);
-        if (row) {
-          rowsByNetwork[networkType].push(row);
-          console.log(`Added row for ${networkType} profile ${profile.name}`);
-        } else {
-          console.log(`No row generated for ${networkType} profile ${profile.name}`);
-        }
-      } else {
-        console.log(`No formatter found for network type: ${networkType}`);
-      }
-    }
-    
-    // Update sheets with data
-    const updatePromises = [];
-    
-    for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
-      if (rows.length > 0) {
-        const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-        if (createdSheets.includes(sheetName)) {
+      // Create sheets for each network type
+      for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
+        if (networkProfiles.length > 0) {
+          const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
+          await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
+          createdSheets.push(sheetName);
+          
+          // Set up headers
           const module = networkModules[networkType];
-          if (module && module.updateSheet) {
-            console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
-            updatePromises.push(module.updateSheet(sheetsUtils, auth, spreadsheetId, rows));
+          if (module && module.setupHeaders) {
+            await module.setupHeaders(sheetsUtils, auth, spreadsheetId);
+          }
+        }
+      }
+      
+      // Fetch analytics data for all profiles in this group using this folder's date range
+      const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
+      console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName} from ${startDate} to ${endDate}`);
+      
+      const analyticsData = await apiUtils.getAnalyticsData(
+        ANALYTICS_URL,
+        SPROUT_API_TOKEN,
+        startDate,
+        endDate,
+        profileIds
+      );
+      
+      if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
+        console.warn(`No analytics data found for group ${groupName} in period ${startDate} to ${endDate}`);
+        results.push({
+          groupId,
+          groupName,
+          folderId,
+          description,
+          dateRange: `${startDate} to ${endDate}`,
+          profileCount: profiles.length,
+          spreadsheetId,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+          status: 'No data'
+        });
+        continue; // Skip to next folder
+      }
+      
+      // Group data by profile and date
+      const dataByProfileAndDate = {};
+      
+      for (const dataPoint of analyticsData.data) {
+        const customerProfileId = dataPoint.dimensions?.customer_profile_id;
+        const reportingPeriod = dataPoint.dimensions?.['reporting_period.by(day)'] || dataPoint.dimensions?.reporting_period;
+        
+        if (!customerProfileId || !reportingPeriod) continue;
+        
+        const date = new Date(reportingPeriod).toISOString().split('T')[0];
+        const key = `${customerProfileId}_${date}`;
+        
+        if (!dataByProfileAndDate[key]) {
+          dataByProfileAndDate[key] = {
+            profileId: customerProfileId,
+            date: date,
+            dataPoint: dataPoint
+          };
+        }
+      }
+      
+      // Process data for each profile
+      const rowsByNetwork = {
+        instagram: [],
+        youtube: [],
+        linkedin: [],
+        facebook: [],
+        twitter: []
+      };
+      
+      for (const { profileId, date, dataPoint } of Object.values(dataByProfileAndDate)) {
+        const profile = profiles.find(p => p.customer_profile_id === parseInt(profileId));
+        if (!profile) {
+          console.log(`Profile not found for ID: ${profileId}`);
+          continue;
+        }
+        
+        // Map network types to our simplified types
+        const networkTypeMapping = {
+          'linkedin_company': 'linkedin',
+          'fb_instagram_account': 'instagram',
+          'fb_page': 'facebook',
+          'youtube_channel': 'youtube',
+          'twitter_profile': 'twitter'
+        };
+        
+        // Get our simplified network type
+        const networkType = networkTypeMapping[profile.network_type] || profile.network_type.toLowerCase();
+        console.log(`Processing data for profile ${profile.name} (${profileId}) with network type: ${profile.network_type} → ${networkType}`);
+        
+        const module = networkModules[networkType];
+        if (module && module.formatAnalyticsData) {
+          const row = module.formatAnalyticsData(dataPoint, profile);
+          if (row) {
+            rowsByNetwork[networkType].push(row);
+            console.log(`Added row for ${networkType} profile ${profile.name}`);
           } else {
-            console.log(`No updateSheet method found for ${networkType}`);
+            console.log(`No row generated for ${networkType} profile ${profile.name}`);
           }
         } else {
-          console.log(`Sheet ${sheetName} not created, skipping update`);
+          console.log(`No formatter found for network type: ${networkType}`);
         }
-      } else {
-        console.log(`No rows to update for ${networkType}`);
       }
+      
+      // Update sheets with data
+      const updatePromises = [];
+      
+      for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
+        if (rows.length > 0) {
+          const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
+          if (createdSheets.includes(sheetName)) {
+            const module = networkModules[networkType];
+            if (module && module.updateSheet) {
+              console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
+              updatePromises.push(module.updateSheet(sheetsUtils, auth, spreadsheetId, rows));
+            } else {
+              console.log(`No updateSheet method found for ${networkType}`);
+            }
+          } else {
+            console.log(`Sheet ${sheetName} not created, skipping update`);
+          }
+        } else {
+          console.log(`No rows to update for ${networkType}`);
+        }
+      }
+      
+      await Promise.all(updatePromises);
+      
+      console.log(`Completed processing for group ${groupName} in folder ${folderId}`);
+      console.log(`Spreadsheet URL: https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`);
+      
+      results.push({
+        groupId,
+        groupName,
+        folderId,
+        description,
+        dateRange: `${startDate} to ${endDate}`,
+        profileCount: profiles.length,
+        spreadsheetId,
+        spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+        status: 'Completed'
+      });
     }
     
-    await Promise.all(updatePromises);
-    
-    console.log(`Completed processing for group ${groupName}`);
-    console.log(`Spreadsheet URL: https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`);
-    
-    return spreadsheetId;
+    return results;
   } catch (error) {
     console.error(`Error processing group ${groupName}:`, error);
-    return null;
+    return [{
+      groupId,
+      groupName,
+      profileCount: profiles.length,
+      status: `Error: ${error.message}`
+    }];
   }
 };
 
@@ -337,7 +385,8 @@ const main = async () => {
       console.error('Please fix the credentials issues and try again.');
       return;
     }    
-                    // Fetch all groups
+    
+    // Fetch all groups
     console.log('\n=== Fetching Customer Groups ===');
     const groups = await groupUtils.getCustomerGroups(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
     if (groups.length === 0) {
@@ -371,7 +420,7 @@ const main = async () => {
     
     // Process each group
     console.log('\n=== Processing Each Group ===');
-    const results = [];
+    const allResults = [];
     
     // Import sleep function from drive utils
     const { sleep } = require('./utils/drive');
@@ -383,15 +432,9 @@ const main = async () => {
       if (profiles.length > 0) {
         try {
           console.log(`\nProcessing group: ${groupName} (${groupId}) with ${profiles.length} profiles`);
-          const spreadsheetId = await processGroupAnalytics(groupId, groupName, profiles);
-          if (spreadsheetId) {
-            results.push({
-              groupId,
-              groupName,
-              profileCount: profiles.length,
-              spreadsheetId,
-              spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
-            });
+          const results = await processGroupAnalytics(groupId, groupName, profiles);
+          if (results && results.length > 0) {
+            allResults.push(...results);
           }
           
           // Add a delay after processing each group to avoid hitting API quotas
@@ -412,11 +455,31 @@ const main = async () => {
     
     // Print summary
     console.log('\n=== Processing Complete ===');
-    console.log(`Processed ${results.length} groups:`);
+    console.log(`Processed ${allResults.length} spreadsheets across ${FOLDER_CONFIGS.length} folders:`);
     
-    results.forEach(result => {
-      console.log(`- ${result.groupName} (${result.profileCount} profiles): ${result.spreadsheetUrl}`);
+    // Group results by folder
+    const resultsByFolder = {};
+    FOLDER_CONFIGS.forEach(config => {
+      resultsByFolder[config.folderId] = {
+        description: config.description,
+        dateRange: `${config.startDate} to ${config.endDate}`,
+        results: allResults.filter(result => result.folderId === config.folderId)
+      };
     });
+    
+    // Print summary by folder
+    for (const [folderId, folderData] of Object.entries(resultsByFolder)) {
+      const { description, dateRange, results } = folderData;
+      console.log(`\nFolder ID: ${folderId} - ${description} (${dateRange}) - ${results.length} spreadsheets created:`);
+      
+      results.forEach(result => {
+        if (result.spreadsheetUrl) {
+          console.log(`- ${result.groupName} (${result.profileCount} profiles): ${result.spreadsheetUrl}`);
+        } else {
+          console.log(`- ${result.groupName} (${result.profileCount} profiles): ${result.status}`);
+        }
+      });
+    }
     
   } catch (error) {
     console.error(`Error in main process: ${error.message}`);

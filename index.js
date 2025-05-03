@@ -1,1278 +1,430 @@
 #!/usr/bin/env node
 
-const axios = require('axios');
-const { google } = require('googleapis');
-const sheets = google.sheets('v4');
-const fs = require('fs');
-const path = require('path');
+/**
+ * Sprout Social Group Analytics to Google Sheets
+ * ==============================================
+ * This script fetches analytics data from Sprout Social API for all profiles in each group
+ * and creates separate Google Sheets for each group with the data.
+ */
 
-// Configuration
+const path = require('path');
+const fs = require('fs');
+
+// Import utilities
+const apiUtils = require('./utils/api');
+const sheetsUtils = require('./utils/sheets');
+const driveUtils = require('./utils/drive');
+const groupUtils = require('./utils/groups');
+
+// Import platform modules
+const instagram = require('./platforms/instagram');
+const youtube = require('./platforms/youtube');
+const linkedin = require('./platforms/linkedin');
+const facebook = require('./platforms/facebook');
+const twitter = require('./platforms/twitter');
+
+// API & Authentication
 const CUSTOMER_ID = "2426451";
-const PROFILE_IDS = ["6886943", "6909586", "6878551", "6886947", "6911594"];
 const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
-const SPREADSHEET_ID = "10S8QaFXTIFCtLu_jNopsF27Zq77B1bx_aceqdYcrexk";
+
+// Paths
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const START_DATE = "2025-04-01"; // e.g. "2025-04-01"
-const END_DATE = "2025-05-01";   // e.g. "2025-04-05"
+const DRIVE_CREDENTIALS_PATH = path.join(__dirname, 'drive-credentials.json');
+
+// Date range for analytics
+const START_DATE = '2025-01-01';
+const END_DATE = '2025-05-01';
+
+// Google Drive folder ID to save all spreadsheets
+const DRIVE_FOLDER_ID = '1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r';
 
 // Sprout Social API endpoints
 const BASE_URL = "https://api.sproutsocial.com/v1";
 const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
 const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
 
-// Setup headers for Sprout Social API
-const getSproutHeaders = () => ({
-  "Authorization": `Bearer ${SPROUT_API_TOKEN}`,
-  "Content-Type": "application/json"
-});
-
-// Get profile data from metadata endpoint
-const getProfileData = async () => {
+// Check if Drive credentials exist, or create them from a source file
+const saveDriveCredentials = () => {
   try {
-    console.log('[API CALL] Fetching profile metadata');
-    const response = await axios.get(METADATA_URL, { headers: getSproutHeaders() });
+    // If drive credentials file already exists, don't overwrite it
+    if (fs.existsSync(DRIVE_CREDENTIALS_PATH)) {
+      console.log(`Drive credentials already exist at ${DRIVE_CREDENTIALS_PATH}`);
+      
+      // Verify the file contains valid JSON
+      try {
+        const fileContent = fs.readFileSync(DRIVE_CREDENTIALS_PATH, 'utf8');
+        const credentials = JSON.parse(fileContent);
+        
+        // Check for required fields
+        if (!credentials.private_key || !credentials.client_email) {
+          console.log('Existing credentials file is missing required fields, will recreate it.');
+          throw new Error('Invalid credentials format');
+        }
+        
+        // Check if private key looks valid (has proper BEGIN/END markers)
+        if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
+            !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
+          console.log('Existing credentials file has malformed private key, will recreate it.');
+          throw new Error('Malformed private key');
+        }
+        
+        return;
+      } catch (parseError) {
+        console.log(`Existing credentials file has issues, will recreate it: ${parseError.message}`);
+      }
+    }
     
-    if (!response.data || !response.data.data) {
-      throw new Error('Invalid metadata response');
+    // Source credentials file path (use credentials.json if it exists)
+    const sourceCredentialsPath = path.join(__dirname, 'credentials.json');
+    
+    if (!fs.existsSync(sourceCredentialsPath)) {
+      throw new Error(`Source credentials file not found at ${sourceCredentialsPath}`);
+    }
+    
+    // Read credentials from source file
+    const credentials = JSON.parse(fs.readFileSync(sourceCredentialsPath, 'utf8'));
+    
+    // Ensure it has the required fields for a service account
+    if (!credentials.private_key || !credentials.client_email) {
+      throw new Error('Source credentials file is missing required service account fields');
+    }
+    
+    // Ensure private key has proper format
+    if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
+        !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
+      throw new Error('Source credentials file has malformed private key');
     }
 
-    console.log('Profile metadata API response:', JSON.stringify(response.data, null, 2));
-    
-    // Convert PROFILE_IDS to strings for comparison
-    const profileIdsToMatch = PROFILE_IDS.map(id => id.toString());
-    const profiles = response.data.data.filter(profile => 
-      profileIdsToMatch.includes(profile.customer_profile_id.toString())
-    );
-
-    if (profiles.length === 0) {
-      throw new Error('No matching profiles found in metadata');
-    }
-
-    return profiles.map(profile => ({
-      network_type: profile.network_type,
-      name: profile.name,
-      network_id: profile.native_id,
-      profile_id: profile.customer_profile_id.toString(),
-      native_name: profile.native_name,
-      link: profile.link
-    }));
+    // Write to drive credentials file
+  fs.writeFileSync(DRIVE_CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
+  console.log(`Drive credentials saved to ${DRIVE_CREDENTIALS_PATH}`);
   } catch (error) {
-    console.error(`[ERROR] Error fetching profile metadata: ${error.message}`);
-    if (error.response) {
-      console.error('[API ERROR RESPONSE]', JSON.stringify(error.response.data, null, 2));
-    }
-    throw error;
+    console.error(`Failed to save drive credentials: ${error.message}`);
+    console.error('Please ensure you have valid Google service account credentials in credentials.json');
+    console.error('You may need to generate new service account keys from the Google Cloud Console.');
+    process.exit(1); // Exit if we can't set up credentials - no point continuing
   }
 };
 
-// Helper function to sleep/delay execution
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-// Get analytics data from Sprout Social API with date chunking to avoid rate limits
-const getAnalyticsData = async (startDate, endDate, profileIds) => {
-  // Generate all days between START_DATE and END_DATE (inclusive)
-  const generateDateRange = (start, end) => {
-    const dates = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+/**
+ * Verify Google Drive credentials by making a test API call
+ * @returns {Promise<boolean>} True if credentials are valid, false otherwise
+ */
+const verifyDriveCredentials = async () => {
+  try {
+    console.log('Verifying Google Drive credentials...');
     
-    for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
-      dates.push(new Date(d).toISOString().split('T')[0]);
+    // Get Google Drive client
+    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
+    if (!drive || !sheets || !auth) {
+      throw new Error('Failed to initialize Google Drive client');
     }
-    return dates;
-  };
+    
+    // Make a simple API call to test authentication
+    // List files with a very small limit to minimize API usage
+    await drive.files.list({
+      pageSize: 1,
+      fields: 'files(id, name)'
+    });
+    
+    console.log('Google Drive credentials verified successfully!');
+    return true;
+  } catch (error) {
+    console.error(`Google Drive credentials verification failed: ${error.message}`);
+    
+    if (error.message.includes('invalid_grant') || 
+        error.message.includes('Invalid JWT') || 
+        error.message.includes('Token has been expired')) {
+      console.error('\nAuthentication error detected. The service account credentials are invalid or expired.');
+      console.error('Please generate new service account keys from the Google Cloud Console.');
+      console.error('1. Go to https://console.cloud.google.com/');
+      console.error('2. Select your project');
+      console.error('3. Go to IAM & Admin > Service Accounts');
+      console.error('4. Find your service account and create a new key');
+      console.error('5. Download the key as JSON and save it as credentials.json in this directory');
+      console.error('6. Delete the existing drive-credentials.json file');
+      console.error('7. Run this script again');
+    }
+    
+    return false;
+  }
+};
 
-  // Break the date range into chunks of 5 days to avoid rate limits
-  const allDates = generateDateRange(startDate, endDate);
-  console.log(`Processing ${allDates.length} days from ${startDate} to ${endDate}`);
-  
-  // Process in chunks of 5 days
-  const CHUNK_SIZE = 5;
-  const allResults = { data: [] };
-  
-  for (let i = 0; i < allDates.length; i += CHUNK_SIZE) {
-    const chunkDates = allDates.slice(i, i + CHUNK_SIZE);
-    const chunkStart = chunkDates[0];
-    const chunkEnd = chunkDates[chunkDates.length - 1];
+/**
+ * Process analytics data for a group
+ * @param {string} groupId - Group ID
+ * @param {string} groupName - Group name
+ * @param {Array} profiles - Array of profiles in the group
+ * @returns {Promise<void>}
+ */
+const processGroupAnalytics = async (groupId, groupName, profiles) => {
+  try {
+    console.log(`\n=== Processing Group: ${groupName} (${groupId}) ===`);
+    console.log(`Found ${profiles.length} profiles in this group`);
     
-    const dateRange = `${chunkStart}...${chunkEnd}`;
-    const profileIdsStr = profileIds.join(', ');
+    // Get Google Drive client
+    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
+    if (!drive || !sheets || !auth) {
+      throw new Error('Failed to authenticate with Google Drive API');
+    }
     
-    console.log(`Processing chunk ${Math.floor(i/CHUNK_SIZE) + 1}: ${dateRange}`);
+    // Create a new spreadsheet for this group
+    const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${new Date().toISOString().split('T')[0]}`;
+    const spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+    if (!spreadsheetId) {
+      throw new Error(`Failed to create spreadsheet for group ${groupName}`);
+    }
     
-    const payload = {
-      "filters": [
-        `customer_profile_id.eq(${profileIdsStr})`,
-        `reporting_period.in(${dateRange})`
-      ],
-      "metrics": [
-        "lifetime_snapshot.followers_count",
-        "net_follower_growth",
-        "followers_gained",
-        "followers_gained_organic",
-        "followers_gained_paid",
-        "followers_lost",
-        "lifetime_snapshot.fans_count",
-        "fans_gained",
-        "fans_gained_organic",
-        "fans_gained_paid",
-        "fans_lost",
-        "impressions",
-        "impressions_organic",
-        "impressions_viral",
-        "impressions_nonviral",
-        "impressions_paid",
-        "tab_views",
-        "tab_views_login",
-        "tab_views_logout",
-        "post_impressions",
-        "post_impressions_organic",
-        "post_impressions_viral",
-        "post_impressions_nonviral",
-        "post_impressions_paid",
-        "impressions_unique",
-        "impressions_organic_unique",
-        "impressions_viral_unique",
-        "impressions_nonviral_unique",
-        "impressions_paid_unique",
-        "reactions",
-        "comments_count",
-        "shares_count",
-        "post_link_clicks",
-        "post_content_clicks_other",
-        "profile_actions",
-        "post_engagements",
-        "video_views",
-        "video_views_organic",
-        "video_views_paid",
-        "video_views_autoplay",
-        "video_views_click_to_play",
-        "video_views_repeat",
-        "video_view_time",
-        "video_views_unique",
-        "posts_sent_count",
-        "posts_sent_by_post_type",
-        "posts_sent_by_content_type",
-        "calculated_engagements"
-      ],
-      "page": 1
+    // Group profiles by network type
+    const profilesByNetwork = groupUtils.groupProfilesByNetworkType(profiles);
+    
+    // Create sheets for each network type that has profiles
+    const networkModules = {
+      instagram,
+      youtube,
+      linkedin,
+      facebook,
+      twitter
     };
     
-    try {
-      console.log(`Analytics API Request for ${dateRange}`);
-      const response = await axios.post(ANALYTICS_URL, payload, { headers: getSproutHeaders() });
-      
-      if (response.data && response.data.data && response.data.data.length > 0) {
-        console.log(`Received ${response.data.data.length} data points for range ${dateRange}`);
-        allResults.data = [...allResults.data, ...response.data.data];
-      } else {
-        console.warn(`No analytics data found for range ${dateRange}`);
-      }
-      
-      // Add a delay between API calls to avoid rate limiting
-      if (i + CHUNK_SIZE < allDates.length) {
-        console.log('Waiting 2 seconds before next API call to avoid rate limits...');
-        await sleep(2000);
-      }
-    } catch (error) {
-      console.error(`Error getting analytics data for ${dateRange}: ${error.message}`);
-      if (error.response) {
-        console.error('API Error Response:', {
-          status: error.response.status,
-          data: JSON.stringify(error.response.data)
-        });
-      }
-      
-      // If we hit a rate limit, wait longer before continuing
-      if (error.response && (error.response.status === 429 || error.response.status === 403)) {
-        console.log('Rate limit hit, waiting 10 seconds before continuing...');
-        await sleep(10000);
-      } else {
-        // For other errors, still wait a bit
-        await sleep(2000);
-      }
-    }
-  }
-  
-  console.log(`Total data points collected: ${allResults.data.length}`);
-  return allResults.data.length > 0 ? allResults : null;
-};
-
-// Format analytics data for Google Sheets
-const formatAnalyticsData = (dataPoint, profileData) => {
-  try {
-    if (!dataPoint || !dataPoint.metrics) {
-      console.error('Invalid data point received for formatting:', dataPoint);
-      return null;
-    }
-
-    // Use dimensions.customer_profile_id for logging
-    const customerProfileId = dataPoint.dimensions && dataPoint.dimensions.customer_profile_id;
-
-    console.log('Formatting data point:', {
-      reporting_period: dataPoint.reporting_period,
-      customer_profile_id: customerProfileId,
-      metrics: Object.keys(dataPoint.metrics)
-    });
-
-    const metrics = dataPoint.metrics;
-    // Use reporting period from dimensions
-    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-    if (!reportingPeriod) {
-      console.error('No reporting period found in dataPoint:', dataPoint);
-      return null;
-    }
-    const date = new Date(reportingPeriod).toISOString().split('T')[0];
+    // Keep track of which sheets we've created
+    const createdSheets = [];
     
-    const engagements = (
-      parseFloat(metrics["likes"] || 0) + 
-      parseFloat(metrics["comments_count"] || 0) + 
-      parseFloat(metrics["shares_count"] || 0) + 
-      parseFloat(metrics["saves"] || 0) + 
-      parseFloat(metrics["story_replies"] || 0)
-    );
-
-    const impressions = metrics["impressions"] || 0;
-    const engagementRatePerImpression = impressions > 0 
-      ? parseFloat(((engagements / impressions) * 100).toFixed(2))
-      : 0;
-      const followersCount = metrics["lifetime_snapshot.followers_count"] || 0;
-      const engagementRatePerFollower = followersCount > 0 
-        ? parseFloat(((engagements / followersCount) * 100).toFixed(2))
-        : 0;
-    const row = [
-      date,
-      profileData.network_type,
-      profileData.name,
-      profileData.network_id,
-      profileData.profile_id,
-      followersCount,
-      impressions,
-      metrics["reactions"] || 0,
-      metrics["saves"] || 0,
-      metrics["comments_count"] || 0,
-      metrics["shares_count"] || 0,
-      metrics["likes"] || 0,
-      metrics["story_replies"] || 0,
-      metrics["impressions_unique"] || 0,
-      metrics["net_following_growth"] || 0,
-      metrics["video_views"] || 0,
-      metrics["lifetime_snapshot.following_count"] || 0,
-      engagements,
-      engagementRatePerImpression,
-      engagementRatePerFollower
-    ];
-
-    console.log('Formatted row:', row);
-    return row;
-  } catch (error) {
-    console.error(`Error formatting analytics data: ${error.message}`);
-    console.error('Data point:', dataPoint);
-    console.error('Profile data:', profileData);
-    return null;
-  }
-};
-
-// Authenticate with Google Sheets API
-const getGoogleAuth = async () => {
-  try {
-    const credentials = JSON.parse(fs.readFileSync(CREDENTIALS_PATH, 'utf8'));
-    const { client_email, private_key } = credentials;
-    
-    const auth = new google.auth.JWT(
-      client_email,
-      null,
-      private_key,
-      ['https://www.googleapis.com/auth/spreadsheets']
-    );
-    
-    await auth.authorize();
-    console.log('Successfully authenticated with Google Sheets API');
-    return auth;
-  } catch (error) {
-    console.error(`Error authenticating with Google: ${error.message}`);
-    return null;
-  }
-};
-
-// Set up sheet with new headers
-const INSTAGRAM_SHEET_NAME = 'Instagram';
-const setupInstagramSheetHeaders = async (auth) => {
-  try {
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${INSTAGRAM_SHEET_NAME}!A1:Z1`,
-    });
-    const headers = [
-      'Date',
-      'Network',
-      'Profile Name',
-      'Network ID',
-      'Profile ID',
-      'Followers Count',
-      'Impressions',
-      'Reactions',
-      'Saves',
-      'Comments Count',
-      'Shares Count',
-      'Likes',
-      'Story Replies',
-      'Impressions Unique',
-      'Net Following Growth',
-      'Video Views',
-      'Following Count',
-      'Engagements',
-      'Engagement Rate (per Impression)',
-      'Engagement Rate (per Follower)',
-    ];
-    // Force header update to include new Followers Count column
-    let needHeaderUpdate = true;
-    if (needHeaderUpdate) {
-      console.log('Updating sheet headers with new columns');
-      await sheets.spreadsheets.values.update({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${INSTAGRAM_SHEET_NAME}!A1:${String.fromCharCode(65 + headers.length - 1)}1`,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [headers]
+    // Create sheets for each network type
+    for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
+      if (networkProfiles.length > 0) {
+        const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
+        await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
+        createdSheets.push(sheetName);
+        
+        // Set up headers
+        const module = networkModules[networkType];
+        if (module && module.setupHeaders) {
+          await module.setupHeaders(sheetsUtils, auth, spreadsheetId);
         }
-      });
-      console.log('Headers updated successfully');
-    } else {
-      console.log('Headers already up to date');
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error setting up sheet headers: ${error.message}`);
-    return false;
-  }
-};
-
-// Update Google Sheet with the data
-const updateSheet = async (auth, rows, sheetName) => {
-  if (!rows || rows.length === 0) {
-    console.warn('No data to update in sheet');
-    return false;
-  }
-
-  try {
-    console.log('Updating sheet with rows:', rows.length);
-    console.log('First row sample:', rows[0]);
-
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!A:A`,
-    });
-
-    const nextRow = (response.data.values ? response.data.values.length : 0) + 1;
-    const lastRow = nextRow + rows.length - 1;
-
-    // Use getColumnLetter for last column
-    const getColumnLetter = (colNum) => {
-      let temp = colNum;
-      let letter = '';
-      while (temp > 0) {
-        let rem = (temp - 1) % 26;
-        letter = String.fromCharCode(65 + rem) + letter;
-        temp = Math.floor((temp - 1) / 26);
       }
-      return letter;
+    }
+    
+    // Fetch analytics data for all profiles in this group
+    const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
+    console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName}`);
+    
+    const analyticsData = await apiUtils.getAnalyticsData(
+      ANALYTICS_URL,
+      SPROUT_API_TOKEN,
+      START_DATE,
+      END_DATE,
+      profileIds
+    );
+    
+    if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
+      console.warn(`No analytics data found for group ${groupName}`);
+      return;
+    }
+    
+    // Group data by profile and date
+    const dataByProfileAndDate = {};
+    
+    for (const dataPoint of analyticsData.data) {
+      const customerProfileId = dataPoint.dimensions?.customer_profile_id;
+      const reportingPeriod = dataPoint.dimensions?.['reporting_period.by(day)'] || dataPoint.dimensions?.reporting_period;
+      
+      if (!customerProfileId || !reportingPeriod) continue;
+      
+      const date = new Date(reportingPeriod).toISOString().split('T')[0];
+      const key = `${customerProfileId}_${date}`;
+      
+      if (!dataByProfileAndDate[key]) {
+        dataByProfileAndDate[key] = {
+          profileId: customerProfileId,
+          date: date,
+          dataPoint: dataPoint
+        };
+      }
+    }
+    
+    // Process data for each profile
+    const rowsByNetwork = {
+      instagram: [],
+      youtube: [],
+      linkedin: [],
+      facebook: [],
+      twitter: []
     };
-    const lastCol = getColumnLetter(rows[0].length);
-
-    console.log('Sheet update details:', {
-      nextRow,
-      lastRow,
-      columnCount: rows[0].length,
-      rowCount: rows.length
-    });
-
-    const updateResponse = await sheets.spreadsheets.values.update({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${sheetName}!A${nextRow}:${lastCol}${lastRow}`,
-      valueInputOption: 'RAW',
-      resource: {
-        values: rows
+    
+    for (const { profileId, date, dataPoint } of Object.values(dataByProfileAndDate)) {
+      const profile = profiles.find(p => p.customer_profile_id === parseInt(profileId));
+      if (!profile) {
+        console.log(`Profile not found for ID: ${profileId}`);
+        continue;
       }
-    });
-
-    console.log('Sheet update response:', updateResponse.data);
-    console.log(`Updated ${rows.length} rows starting from row ${nextRow}`);
-    return true;
-  } catch (error) {
-    console.error(`Error updating sheet: ${error.message}`);
-    if (error.response) {
-      console.error('Sheet API Error:', error.response.data);
-    }
-    return false;
-  }
-};
-
-// Format YouTube analytics data for Sheet2
-function formatYouTubeAnalyticsData(dataPoint, profileData) {
-  try {
-    const metrics = dataPoint.metrics;
-    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-    if (!reportingPeriod) {
-      console.error('No reporting period found in dataPoint:', dataPoint);
-      return null;
-    }
-    const date = new Date(reportingPeriod).toISOString().split('T')[0];
-    
-    const netFollowerGrowths = 
-      (parseFloat(metrics["followers_gained"] || 0)) - 
-      (parseFloat(metrics["followers_lost"] || 0));
-
-    const videoEngagements = 
-      (parseFloat(metrics["comments_count"] || 0)) +
-      (parseFloat(metrics["likes"] || 0))+
-      (parseFloat(metrics["dislikes"] || 0)) +
-      (parseFloat(metrics["shares_count"] || 0)) +
-      (parseFloat(metrics["followers_gained"] || 0)) +
-      (parseFloat(metrics["annotation_clicks"] || 0)) +
-      (parseFloat(metrics["card_clicks"] || 0));
-
-    const videoViews = parseFloat(metrics["video_views"] || 0);
-    const engagementsPerView = videoViews > 0 
-      ? parseFloat((videoEngagements / videoViews).toFixed(4)) 
-      : 0;
-    // Return values in the order specified for Sheet2
-    const row = [
-      date,
-      profileData.network_type,
-      profileData.name,
-      profileData.network_id,
-      profileData.profile_id,
-      metrics["lifetime_snapshot.followers_count"] || 0,
-      metrics["net_follower_growth"] || 0,
-      metrics["followers_gained"] || 0,
-      metrics["followers_lost"] || 0,
-      metrics["posts_sent_count"] || 0,
-      netFollowerGrowths,
-      videoEngagements,
-      videoViews
-    ];
-    console.log('Formatted YouTube row:', row);
-    return row;
-  } catch (err) {
-    console.error('Error formatting YouTube analytics data:', err.message);
-    console.error('Data point:', dataPoint);
-    console.error('Profile data:', profileData);
-    return null;
-  }
-}
-
-// Set up Sheet2 headers
-const YOUTUBE_SHEET_NAME = 'Youtube';
-const YOUTUBE_HEADERS = [
-  'Date',
-  'Network',
-  'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Followers Count',
-  'Net Follower Growth',
-  'Followers Gained',
-  'Followers Lost',
-  'Posts Sent Count',
-  'netFollowerGrowths',
-  'videoEngagements',
-  'videoViews'
-];
-
-const setupYoutubeSheetHeaders = async (auth) => {
-  try {
-    const lastCol = getColumnLetter(YOUTUBE_HEADERS.length);
-    const headerRange = `${YOUTUBE_SHEET_NAME}!A1:${lastCol}1`;
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: headerRange,
-    });
-    // Force header update to include new Followers Count column
-    let needHeaderUpdate = true;
-    if (needHeaderUpdate) {
-      console.log('Updating Youtube headers with new columns');
-      await sheets.spreadsheets.values.update({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        range: headerRange,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [YOUTUBE_HEADERS]
-        }
-      });
-      console.log('Youtube headers updated successfully');
-    } else {
-      console.log('Youtube headers already up to date');
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error setting up Youtube headers: ${error.message}`);
-    return false;
-  }
-};
-
-// --- Sheet3 Support for LinkedIn (Profile ID 6878551) ---
-// --- Sheet4 Support for Facebook (Profile ID 6886947) ---
-// --- Sheet5 Support for Twitter (Profile ID 6911594) ---
-const SHEET5_PROFILE_ID = '6911594';
-const TWITTER_SHEET_NAME = 'Twitter';
-const TWITTER_HEADERS = [
-  'Date',
-  'Network',
-  'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Followers Count',
-  'net_follower_growth',
-  'impressions',
-  'post_media_views',
-  'video_views',
-  'reactions',
-  'likes',
-  'comments_count',
-  'shares_count',
-  'post_link_clicks',
-  'post_content_clicks_other',
-  'post_media_clicks',
-  'post_hashtag_clicks',
-  'post_detail_expand_clicks',
-  'post_profile_clicks',
-  'engagements_other',
-  'post_app_engagements',
-  'post_app_installs',
-  'post_app_opens',
-  'posts_sent_count',
-  'posts_sent_by_post_type',
-  'posts_sent_by_content_type',
-  'Engagements',
-  'Engagement Rate (per Impression)',
-  'Engagement Rate (per Follower)',
-  'Click-Through Rate'
-];
-const setupTwitterSheetHeaders = async (auth) => {
-  try {
-    const lastCol = getColumnLetter(TWITTER_HEADERS.length);
-    const headerRange = `${TWITTER_SHEET_NAME}!A1:${lastCol}1`;
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: headerRange,
-    });
-    // Force header update to include new Followers Count column
-    let needHeaderUpdate = true;
-    if (needHeaderUpdate) {
-      console.log('Updating Twitter headers with new columns');
-      await sheets.spreadsheets.values.update({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        range: headerRange,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [TWITTER_HEADERS]
-        }
-      });
-      console.log('Twitter headers updated successfully');
-    } else {
-      console.log('Twitter headers already up to date');
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error setting up Twitter headers: ${error.message}`);
-    return false;
-  }
-};
-const formatTwitterAnalyticsData = (dataPoint, profileData) => {
-  // Use safeNumber for all metrics in the row array
-
-  try {
-    const metrics = dataPoint.metrics;
-    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-    if (!reportingPeriod) {
-      console.error('No reporting period found in dataPoint:', dataPoint);
-      return null;
-    }
-    const date = new Date(reportingPeriod).toISOString().split('T')[0];
-    
-    const followers = metrics["lifetime_snapshot.followers_count"] || 0;
-    const impressions = metrics["impressions"] || 0;
-    const postLinkClicks = metrics["post_link_clicks"] || 0;
-    const otherClicks = metrics["post_content_clicks_other"] || 0;
-    const otherEngagements = metrics["engagements_other"] || 0;
-    
-    // Sprout's default Engagements calculation for Twitter/X
-    const engagements = 
-      parseFloat(metrics["likes"] || 0) + 
-      parseFloat(metrics["comments_count"] || 0) +  // @Replies
-      parseFloat(metrics["shares_count"] || 0) +    // Reposts
-      parseFloat(postLinkClicks) + 
-      parseFloat(otherClicks) +
-      parseFloat(otherEngagements);
-    
-    // Engagement Rates
-    const engagementRatePerFollower = followers > 0 
-      ? parseFloat(((engagements / followers) * 100).toFixed(2)) 
-      : 0;
       
-    const engagementRatePerImpression = impressions > 0
-      ? parseFloat(((engagements / impressions) * 100).toFixed(2))
-      : 0;
+      // Map network types to our simplified types
+      const networkTypeMapping = {
+        'linkedin_company': 'linkedin',
+        'fb_instagram_account': 'instagram',
+        'fb_page': 'facebook',
+        'youtube_channel': 'youtube',
+        'twitter_profile': 'twitter'
+      };
       
-    // Click-Through Rate
-    const clickThroughRate = impressions > 0
-      ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
-      : 0;
+      // Get our simplified network type
+      const networkType = networkTypeMapping[profile.network_type] || profile.network_type.toLowerCase();
+      console.log(`Processing data for profile ${profile.name} (${profileId}) with network type: ${profile.network_type} → ${networkType}`);
+      
+      const module = networkModules[networkType];
+      if (module && module.formatAnalyticsData) {
+        const row = module.formatAnalyticsData(dataPoint, profile);
+        if (row) {
+          rowsByNetwork[networkType].push(row);
+          console.log(`Added row for ${networkType} profile ${profile.name}`);
+        } else {
+          console.log(`No row generated for ${networkType} profile ${profile.name}`);
+        }
+      } else {
+        console.log(`No formatter found for network type: ${networkType}`);
+      }
+    }
     
-    return [
-      date,
-      profileData ? profileData.network_type : '',
-      profileData ? profileData.name : '',
-      profileData ? profileData.network_id : '',
-      dataPoint.dimensions.customer_profile_id || '',
-      safeNumber(metrics['lifetime_snapshot.followers_count']),
-      safeNumber(metrics['net_follower_growth']),
-      safeNumber(metrics['impressions']),
-      safeNumber(metrics['post_media_views']),
-      safeNumber(metrics['video_views']),
-      safeNumber(metrics['reactions']),
-      safeNumber(metrics['likes']),
-      safeNumber(metrics['comments_count']),
-      safeNumber(metrics['shares_count']),
-      safeNumber(metrics['post_content_clicks']),
-      safeNumber(metrics['post_link_clicks']),
-      safeNumber(metrics['post_content_clicks_other']),
-      safeNumber(metrics['post_media_clicks']),
-      safeNumber(metrics['post_hashtag_clicks']),
-      safeNumber(metrics['post_detail_expand_clicks']),
-      safeNumber(metrics['post_profile_clicks']),
-      safeNumber(metrics['engagements_other']),
-      safeNumber(metrics['post_app_engagements']),
-      safeNumber(metrics['post_app_installs']),
-      safeNumber(metrics['post_app_opens']),
-      safeNumber(metrics['posts_sent_count']),
-      safeNumber(metrics['posts_sent_by_post_type']),
-      safeNumber(metrics['posts_sent_by_content_type']),
-      engagements,
-      engagementRatePerImpression,
-      engagementRatePerFollower,
-      clickThroughRate
-    ];
-  } catch (err) {
-    console.error('Error formatting Twitter analytics data:', err.message);
+    // Update sheets with data
+    const updatePromises = [];
+    
+    for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
+      if (rows.length > 0) {
+        const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
+        if (createdSheets.includes(sheetName)) {
+          const module = networkModules[networkType];
+          if (module && module.updateSheet) {
+            console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
+            updatePromises.push(module.updateSheet(sheetsUtils, auth, spreadsheetId, rows));
+          } else {
+            console.log(`No updateSheet method found for ${networkType}`);
+          }
+        } else {
+          console.log(`Sheet ${sheetName} not created, skipping update`);
+        }
+      } else {
+        console.log(`No rows to update for ${networkType}`);
+      }
+    }
+    
+    await Promise.all(updatePromises);
+    
+    console.log(`Completed processing for group ${groupName}`);
+    console.log(`Spreadsheet URL: https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`);
+    
+    return spreadsheetId;
+  } catch (error) {
+    console.error(`Error processing group ${groupName}:`, error);
     return null;
   }
 };
-const updateTwitterSheet = async (auth, rows) => updateSheet(auth, rows, TWITTER_SHEET_NAME);
-// --- End Twitter Support ---
 
-const SHEET4_PROFILE_ID = '6886947';
-const FACEBOOK_SHEET_NAME = 'Facebook';
-const FACEBOOK_HEADERS = [
-  'Date',
-  'Network',
-  'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Followers Count',
-  'net_follower_growth',
-  'followers_gained',
-  'followers_gained_organic',
-  'followers_gained_paid',
-  'followers_lost',
-  'lifetime_snapshot.fans_count',
-  'fans_gained',
-  'fans_gained_organic',
-  'fans_gained_paid',
-  'fans_lost',
-  'impressions',
-  'impressions_organic',
-  'impressions_viral',
-  'impressions_nonviral',
-  'impressions_paid',
-  'tab_views',
-  'tab_views_login',
-  'tab_views_logout',
-  'post_impressions',
-  'post_impressions_organic',
-  'post_impressions_viral',
-  'post_impressions_nonviral',
-  'post_impressions_paid',
-  'impressions_unique',
-  'impressions_organic_unique',
-  'impressions_viral_unique',
-  'impressions_nonviral_unique',
-  'impressions_paid_unique',
-  'reactions',
-  'comments_count',
-  'shares_count',
-  'post_link_clicks',
-  'post_content_clicks_other',
-  'profile_actions',
-  'post_engagements',
-  'video_views',
-  'video_views_organic',
-  'video_views_paid',
-  'video_views_autoplay',
-  'video_views_click_to_play',
-  'video_views_repeat',
-  'video_view_time',
-  'Engagements',
-  'Engagement Rate (per Impression)',
-  'Engagement Rate (per Follower)',
-  'Click-Through Rate',
-  'video_views_unique',
-  'posts_sent_count',
-  'posts_sent_by_post_type',
-  'posts_sent_by_content_type'
-];
-const setupFacebookSheetHeaders = async (auth) => {
-  try {
-    const lastCol = getColumnLetter(FACEBOOK_HEADERS.length);
-    const headerRange = `${FACEBOOK_SHEET_NAME}!A1:${lastCol}1`;
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: headerRange,
-    });
-    // Force header update to include new Followers Count column
-    let needHeaderUpdate = true;
-    if (needHeaderUpdate) {
-      console.log('Updating Facebook headers with new columns');
-      await sheets.spreadsheets.values.update({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        range: headerRange,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [FACEBOOK_HEADERS]
-        }
-      });
-      console.log('Facebook headers updated successfully');
-    } else {
-      console.log('Facebook headers already up to date');
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error setting up Facebook headers: ${error.message}`);
-    return false;
-  }
-};
-function safeNumber(val) {
-  return (typeof val === 'number' && !isNaN(val)) ? val : 0;
-}
-
-const formatFacebookAnalyticsData = (dataPoint, profileData) => {
-  try {
-    const metrics = dataPoint.metrics;
-    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-    if (!reportingPeriod) {
-      console.error('No reporting period found in dataPoint:', dataPoint);
-      return null;
-    }
-    const date = new Date(reportingPeriod).toISOString().split('T')[0];
-    
-    const followers = metrics["lifetime_snapshot.followers_count"] || 0;
-    const impressions = metrics["impressions"] || 0;
-    const postLinkClicks = metrics["post_link_clicks"] || 0;
-    const otherClicks = metrics["post_content_clicks_other"] || 0;
-    
-    // Sprout's default Engagements calculation for Facebook
-    const engagements = 
-      (parseFloat(metrics["reactions"] || 0)) + 
-      (parseFloat(metrics["comments_count"] || 0)) + 
-      (parseFloat(metrics["shares_count"] || 0)) + 
-      parseFloat(postLinkClicks) + 
-      parseFloat(otherClicks);
-    
-    // Engagement Rates
-    const engagementRatePerFollower = followers > 0 
-      ? parseFloat(((engagements / followers) * 100).toFixed(2)) 
-      : 0;
-      
-    const engagementRatePerImpression = impressions > 0
-      ? parseFloat(((engagements / impressions) * 100).toFixed(2))
-      : 0;
-      
-    // Click-Through Rate
-    const clickThroughRate = impressions > 0
-      ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
-      : 0;
-    
-    return [
-      date,
-      profileData ? profileData.network_type : '',
-      profileData ? profileData.name : '',
-      profileData ? profileData.network_id : '',
-      dataPoint.dimensions.customer_profile_id || '',
-      safeNumber(metrics['lifetime_snapshot.followers_count']),
-      safeNumber(metrics['net_follower_growth']),
-      safeNumber(metrics['followers_gained']),
-      safeNumber(metrics['followers_gained_organic']),
-      safeNumber(metrics['followers_gained_paid']),
-      safeNumber(metrics['followers_lost']),
-      safeNumber(metrics['lifetime_snapshot.fans_count']),
-      safeNumber(metrics['fans_gained']),
-      safeNumber(metrics['fans_gained_organic']),
-      safeNumber(metrics['fans_gained_paid']),
-      safeNumber(metrics['fans_lost']),
-      safeNumber(metrics['impressions']),
-      safeNumber(metrics['impressions_organic']),
-      safeNumber(metrics['impressions_viral']),
-      safeNumber(metrics['impressions_nonviral']),
-      safeNumber(metrics['impressions_paid']),
-      safeNumber(metrics['tab_views']),
-      safeNumber(metrics['tab_views_login']),
-      safeNumber(metrics['tab_views_logout']),
-      safeNumber(metrics['post_impressions']),
-      safeNumber(metrics['post_impressions_organic']),
-      safeNumber(metrics['post_impressions_viral']),
-      safeNumber(metrics['post_impressions_nonviral']),
-      safeNumber(metrics['post_impressions_paid']),
-      safeNumber(metrics['impressions_unique']),
-      safeNumber(metrics['impressions_organic_unique']),
-      safeNumber(metrics['impressions_viral_unique']),
-      safeNumber(metrics['impressions_nonviral_unique']),
-      safeNumber(metrics['impressions_paid_unique']),
-      safeNumber(metrics['reactions']),
-      safeNumber(metrics['comments_count']),
-      safeNumber(metrics['shares_count']),
-      safeNumber(metrics['post_link_clicks']),
-      safeNumber(metrics['post_content_clicks_other']),
-      safeNumber(metrics['profile_actions']),
-      safeNumber(metrics['post_engagements']),
-      safeNumber(metrics['video_views']),
-      safeNumber(metrics['video_views_organic']),
-      safeNumber(metrics['video_views_paid']),
-      safeNumber(metrics['video_views_autoplay']),
-      safeNumber(metrics['video_views_click_to_play']),
-      safeNumber(metrics['video_views_repeat']),
-      safeNumber(metrics['video_view_time']),
-      safeNumber(metrics['video_views_unique']),
-      safeNumber(metrics['video_views_30s_complete']),
-      safeNumber(metrics['video_views_30s_complete_organic']),
-      safeNumber(metrics['video_views_30s_complete_paid']),
-      safeNumber(metrics['video_views_30s_complete_autoplay']),
-      safeNumber(metrics['video_views_30s_complete_click_to_play']),
-      safeNumber(metrics['video_views_30s_complete_repeat']),
-      safeNumber(metrics['video_views_30s_complete_unique']),
-      safeNumber(metrics['video_views_partial']),
-      safeNumber(metrics['video_views_partial_organic']),
-      safeNumber(metrics['video_views_partial_paid']),
-      safeNumber(metrics['video_views_partial_autoplay']),
-      safeNumber(metrics['video_views_partial_click_to_play']),
-      safeNumber(metrics['video_views_partial_repeat']),
-      safeNumber(metrics['posts_sent_count']),
-      safeNumber(metrics['posts_sent_by_post_type']),
-      safeNumber(metrics['posts_sent_by_content_type']),
-      engagements,
-      engagementRatePerImpression,
-      engagementRatePerFollower,
-      clickThroughRate
-    ];
-  } catch (err) {
-    console.error('Error formatting Facebook analytics data:', err.message);
-    return null;
-  }
-};
-const updateFacebookSheet = async (auth, rows) => updateSheet(auth, rows, FACEBOOK_SHEET_NAME);
-// --- End Facebook Support ---
-
-const INSTAGRAM_PROFILE_ID = '6886943';
-const YOUTUBE_PROFILE_ID = '6909586';
-const LINKEDIN_PROFILE_ID = '6878551';
-const FACEBOOK_PROFILE_ID = '6886947';
-const TWITTER_PROFILE_ID = '6911594';
-const LINKEDIN_SHEET_NAME = 'Linkedin';
-const LINKEDIN_HEADERS = [
-  'Date',
-  'Network',
-  'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Followers Count',
-  'Followers by Job Function',
-  'Followers by Seniority',
-  'Net Follower Growth',
-  'Followers Gained',
-  'Followers Gained Organic',
-  'Followers Gained Paid',
-  'Followers Lost',
-  'Impressions',
-  'Impressions Unique',
-  'Reactions',
-  'Comments Count',
-  'Shares Count',
-  'Post Content Clicks',
-  'Posts Sent Count',
-  'Engagements',
-  'Engagement Rate (per Impression)',
-  'Engagement Rate (per Follower)',
-];
-const getColumnLetter = (colNum) => {
-  let temp = colNum;
-  let letter = '';
-  while (temp > 0) {
-    let rem = (temp - 1) % 26;
-    letter = String.fromCharCode(65 + rem) + letter;
-    temp = Math.floor((temp - 1) / 26);
-  }
-  return letter;
-};
-
-const setupLinkedinSheetHeaders = async (auth) => {
-  try {
-    const lastCol = getColumnLetter(LINKEDIN_HEADERS.length);
-    const headerRange = `${LINKEDIN_SHEET_NAME}!A1:${lastCol}1`;
-    const response = await sheets.spreadsheets.values.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-      range: headerRange,
-    });
-    // Force header update to include new Followers Count column
-    let needHeaderUpdate = true;
-    if (needHeaderUpdate) {
-      console.log('Updating LinkedIn headers with new columns');
-      await sheets.spreadsheets.values.update({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        range: headerRange,
-        valueInputOption: 'RAW',
-        resource: {
-          values: [LINKEDIN_HEADERS]
-        }
-      });
-      console.log('LinkedIn headers updated successfully');
-    } else {
-      console.log('LinkedIn headers already up to date');
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error setting up LinkedIn headers: ${error.message}`);
-    return false;
-  }
-};
-const formatLinkedInAnalyticsData = (dataPoint, profileData) => {
-  try {
-    const metrics = dataPoint.metrics;
-    const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-    if (!reportingPeriod) {
-      console.error('No reporting period found in dataPoint:', dataPoint);
-      return null;
-    }
-    const date = new Date(reportingPeriod).toISOString().split('T')[0];
-    
-    const engagements = 
-      (parseFloat(metrics["reactions"] || 0)) + 
-      (parseFloat(metrics["comments_count"] || 0)) + 
-      (parseFloat(metrics["shares_count"] || 0)) + 
-      (parseFloat(metrics["post_clicks_all"] || 0));
-    
-    const impressions = parseFloat(metrics["impressions"] || 1); // Avoid division by zero
-    const followers = parseFloat(metrics["lifetime_snapshot.followers_count"] || 1);
-    const engagementRatePerFollower = followers > 0 
-      ? parseFloat(((engagements / followers) * 100).toFixed(2)) 
-      : 0;
-    const engagementRatePerImpression = parseFloat(((engagements / impressions) * 100).toFixed(2));
-    
-    return [
-      date,
-      profileData ? profileData.network_type : '',
-      profileData ? profileData.name : '',
-      profileData ? profileData.network_id : '',
-      dataPoint.dimensions.customer_profile_id || '',
-      metrics['lifetime_snapshot.followers_count'] || 0,
-      metrics['followers_by_job_function'] || '0',
-      metrics['followers_by_seniority'] || '0',
-      metrics['net_follower_growth'] || 0,
-      metrics['followers_gained'] || 0,
-      metrics['followers_gained_organic'] || 0,
-      metrics['followers_gained_paid'] || 0,
-      metrics['followers_lost'] || 0,
-      metrics['impressions'] || 0,
-      metrics['impressions_unique'] || 0,
-      metrics['reactions'] || 0,
-      metrics['comments_count'] || 0,
-      metrics['shares_count'] || 0,
-      metrics['post_content_clicks'] || 0,
-      metrics['posts_sent_count'] || 0,
-      engagements,
-      engagementRatePerImpression,
-      engagementRatePerFollower
-    ];
-  } catch (err) {
-    console.error('Error formatting LinkedIn analytics data:', err.message);
-    return null;
-  }
-};
-const updateLinkedinSheet = async (auth, rows) => updateSheet(auth, rows, LINKEDIN_SHEET_NAME);
-// --- End LinkedIn Support ---
-
-// Add this function before the main function
-const createSheetIfNotExists = async (auth, sheetName) => {
-  try {
-    // First check if sheet exists
-    const response = await sheets.spreadsheets.get({
-      auth,
-      spreadsheetId: SPREADSHEET_ID,
-    });
-
-    const sheetExists = response.data.sheets.some(sheet => 
-      sheet.properties.title === sheetName
-    );
-
-    if (!sheetExists) {
-      console.log(`Creating new sheet: ${sheetName}`);
-      await sheets.spreadsheets.batchUpdate({
-        auth,
-        spreadsheetId: SPREADSHEET_ID,
-        resource: {
-          requests: [{
-            addSheet: {
-              properties: {
-                title: sheetName
-              }
-            }
-          }]
-        }
-      });
-      console.log(`Successfully created sheet: ${sheetName}`);
-    } else {
-      console.log(`Sheet ${sheetName} already exists`);
-    }
-    return true;
-  } catch (error) {
-    console.error(`Error creating sheet ${sheetName}:`, error.message);
-    return false;
-  }
-};
-
-// Modify the main function to create sheets if they don't exist
+/**
+ * Main function to orchestrate the entire process
+ */
 const main = async () => {
   try {
-    console.log('Starting daily update process...');
-    const auth = await getGoogleAuth();
-    if (!auth) {
-      throw new Error('Failed to authenticate with Google Sheets');
-    }
-
-    // Create sheets if they don't exist
-    await createSheetIfNotExists(auth, INSTAGRAM_SHEET_NAME);
-    await createSheetIfNotExists(auth, YOUTUBE_SHEET_NAME);
-    await createSheetIfNotExists(auth, LINKEDIN_SHEET_NAME);
-    await createSheetIfNotExists(auth, FACEBOOK_SHEET_NAME);
-    await createSheetIfNotExists(auth, TWITTER_SHEET_NAME);
-
-    await setupInstagramSheetHeaders(auth);
-    await setupYoutubeSheetHeaders(auth);
-    await setupLinkedinSheetHeaders(auth);
-    await setupFacebookSheetHeaders(auth);
-    await setupTwitterSheetHeaders(auth);
-    const profiles = await getProfileData();
-    const sheet1ProfileId = INSTAGRAM_PROFILE_ID;
-    const sheet2ProfileId = YOUTUBE_PROFILE_ID;
-    const linkedinProfileId = LINKEDIN_PROFILE_ID;
-    const facebookProfileId = FACEBOOK_PROFILE_ID;
-    const twitterProfileId = TWITTER_PROFILE_ID;
+    console.log('Starting Group Analytics Processing');
     
-    if (!profiles || profiles.length === 0) {
-      throw new Error('No profiles found to process');
-    }
-
-        // Determine date range to fetch
-    let startDateToUse = START_DATE;
-    let endDateToUse = END_DATE;
+    // Save Drive credentials
+    saveDriveCredentials();
     
-    if (!startDateToUse && !endDateToUse) {
-      // If no dates specified, use today
-      const today = new Date().toISOString().split('T')[0];
-      startDateToUse = today;
-      endDateToUse = today;
-    } else if (startDateToUse && !endDateToUse) {
-      // If only start date specified, use just that day
-      endDateToUse = startDateToUse;
+    // Verify Drive credentials before proceeding
+    const credentialsValid = await verifyDriveCredentials();
+    if (!credentialsValid) {
+      console.error('Google Drive credentials verification failed. Cannot proceed with spreadsheet creation.');
+      console.error('Please fix the credentials issues and try again.');
+      return;
+    }    
+                    // Fetch all groups
+    console.log('\n=== Fetching Customer Groups ===');
+    const groups = await groupUtils.getCustomerGroups(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+    if (groups.length === 0) {
+      throw new Error('No groups found');
     }
     
-    console.log(`Fetching analytics data for date range: ${startDateToUse} to ${endDateToUse}`);
+    console.log('\nGroup details:');
+    groups.forEach((group, index) => {
+      console.log(`${index + 1}. Group ID: ${group.group_id}, Name: ${group.name}`);
+    });
     
-    // Fetch all data for the entire date range with chunking to avoid rate limits
-    const analyticsData = await getAnalyticsData(
-      startDateToUse,
-      endDateToUse,
-      profiles.map(p => p.profile_id)
-    );
+    // Fetch all profiles
+    console.log('\n=== Fetching All Profiles ===');
+    const profiles = await groupUtils.getAllProfiles(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+    if (profiles.length === 0) {
+      throw new Error('No profiles found');
+    }
     
-    // Process data by date
-    if (analyticsData && analyticsData.data && analyticsData.data.length > 0) {
-      // Group data points by date
-      const dataByDate = {};
+    console.log('\nProfile details:');
+    profiles.slice(0, 5).forEach((profile, index) => {
+      const groupsInfo = profile.groups ? profile.groups.join(',') : 'None';
+      console.log(`${index + 1}. Profile ID: ${profile.customer_profile_id}, Name: ${profile.name}, Network: ${profile.network_type}, Groups: ${groupsInfo}`);
+    });
+    if (profiles.length > 5) {
+      console.log(`... and ${profiles.length - 5} more profiles`);
+    }
+    
+    // Group profiles by group ID
+    console.log('\n=== Grouping Profiles by Group ID ===');
+    const profilesByGroup = groupUtils.groupProfilesByGroup(profiles, groups);
+    
+    // Process each group
+    console.log('\n=== Processing Each Group ===');
+    const results = [];
+    
+    // Import sleep function from drive utils
+    const { sleep } = require('./utils/drive');
+    
+    // Process groups with a delay between each to avoid hitting API quotas
+    for (const [groupId, groupData] of Object.entries(profilesByGroup)) {
+      const { groupName, profiles } = groupData;
       
-      for (const dataPoint of analyticsData.data) {
-        const reportingPeriod = dataPoint.dimensions && 
-          (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
-        
-        if (!reportingPeriod) {
-          console.error('No reporting period found in dataPoint:', dataPoint);
-          continue;
-        }
-        
-        // Ensure date is properly formatted
-        let dateKey;
+      if (profiles.length > 0) {
         try {
-          dateKey = new Date(reportingPeriod).toISOString().split('T')[0];
-        } catch (e) {
-          console.error(`Error parsing date from ${reportingPeriod}:`, e);
-          continue;
-        }
-        
-        if (!dataByDate[dateKey]) {
-          dataByDate[dateKey] = [];
-        }
-        dataByDate[dateKey].push(dataPoint);
-      }
-      
-      // Sort dates chronologically
-      const sortedDates = Object.keys(dataByDate).sort();
-      console.log(`Processing data for ${sortedDates.length} dates: ${sortedDates.join(', ')}`);
-      
-      // Process each date's data
-      for (const dateToUse of sortedDates) {
-        console.log(`Processing data for ${dateToUse}`);
-        const datepointArray = dataByDate[dateToUse];
-        
-        // Create a compatible data structure for the rest of the code
-        const dateAnalyticsData = {
-          data: datepointArray
-        };
-
-      const rowsForDate = [];
-      const youtubeRowsForDate = [];
-      
-      const linkedinRowsForDate = [];
-      const facebookRowsForDate = [];
-      const twitterRowsForDate = [];
-      for (const dataPoint of datepointArray) {
-        // Use dimensions.customer_profile_id for mapping
-        const customerProfileId = dataPoint.dimensions && dataPoint.dimensions.customer_profile_id;
-        if (!customerProfileId) {
-          console.error('Data point missing dimensions.customer_profile_id:', dataPoint);
-          continue;
-        }
-
-        const profile = profiles.find(p => 
-          p.profile_id === customerProfileId.toString()
-        );
-
-        if (!profile) {
-          console.error(`No matching profile found for ID: ${customerProfileId}`);
-          continue;
-        }
-
-        // Sheet1: Only use profile_id 6886943
-        if (String(profile.profile_id) === sheet1ProfileId) {
-          const formattedRow = formatAnalyticsData(dataPoint, profile);
-          if (formattedRow) {
-            rowsForDate.push(formattedRow);
+          console.log(`\nProcessing group: ${groupName} (${groupId}) with ${profiles.length} profiles`);
+          const spreadsheetId = await processGroupAnalytics(groupId, groupName, profiles);
+          if (spreadsheetId) {
+            results.push({
+              groupId,
+              groupName,
+              profileCount: profiles.length,
+              spreadsheetId,
+              spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`
+            });
           }
+          
+          // Add a delay after processing each group to avoid hitting API quotas
+          // Wait 30 seconds between groups
+          console.log(`Waiting 30 seconds before processing the next group to avoid API quota limits...`);
+          await sleep(30000);
+        } catch (error) {
+          console.error(`Error processing group ${groupName}: ${error.message}`);
+          
+          // Even if there's an error, wait before trying the next group
+          console.log(`Waiting 10 seconds before continuing to the next group...`);
+          await sleep(10000);
         }
-
-        // Sheet2: Only use profile_id 6909586
-        if (String(profile.profile_id) === sheet2ProfileId) {
-          console.log('[Sheet2] Processing YouTube profile:', profile);
-          const youtubeRow = formatYouTubeAnalyticsData(dataPoint, profile);
-          if (youtubeRow) {
-            console.log('[Sheet2] Adding YouTube row:', youtubeRow);
-            youtubeRowsForDate.push(youtubeRow);
-          } else {
-            console.warn('[Youtube] formatYouTubeAnalyticsData returned null for dataPoint:', dataPoint);
-          }
-        }
-        // Linkedin: Only use profile_id 6878551
-        if (String(profile.profile_id) === linkedinProfileId) {
-          const linkedinRow = formatLinkedInAnalyticsData(dataPoint, profile);
-          if (linkedinRow) {
-            linkedinRowsForDate.push(linkedinRow);
-          } else {
-            console.warn('[Linkedin] formatLinkedInAnalyticsData returned null for dataPoint:', dataPoint);
-          }
-        }
-        // Facebook: Only use profile_id 6886947
-        if (String(profile.profile_id) === facebookProfileId) {
-          const facebookRow = formatFacebookAnalyticsData(dataPoint, profile);
-          if (facebookRow) {
-            facebookRowsForDate.push(facebookRow);
-          } else {
-            console.warn('[Facebook] formatFacebookAnalyticsData returned null for dataPoint:', dataPoint);
-          }
-        }
-        // Twitter: Only use profile_id 6911594
-        if (String(profile.profile_id) === twitterProfileId) {
-          const twitterRow = formatTwitterAnalyticsData(dataPoint, profile);
-          if (twitterRow) {
-            twitterRowsForDate.push(twitterRow);
-          } else {
-            console.warn('[Twitter] formatTwitterAnalyticsData returned null for dataPoint:', dataPoint);
-          }
-        }
-      }
-
-      if (rowsForDate.length > 0) {
-        await updateSheet(auth, rowsForDate, INSTAGRAM_SHEET_NAME);
-        console.log(`Updated Instagram for ${dateToUse}`);
       } else {
-        console.warn(`No valid Instagram data rows to update for ${dateToUse}`);
-      }
-
-      if (youtubeRowsForDate.length > 0) {
-        await updateSheet(auth, youtubeRowsForDate, YOUTUBE_SHEET_NAME);
-        console.log(`Updated Youtube for ${dateToUse}`);
-      } else {
-        console.warn(`No valid Youtube data rows to update for ${dateToUse}`);
-      }
-      if (linkedinRowsForDate.length > 0) {
-        await updateSheet(auth, linkedinRowsForDate, LINKEDIN_SHEET_NAME);
-        console.log(`Updated Linkedin for ${dateToUse}`);
-      } else {
-        console.warn(`No valid Linkedin data rows to update for ${dateToUse}`);
-      }
-      if (facebookRowsForDate.length > 0) {
-        await updateSheet(auth, facebookRowsForDate, FACEBOOK_SHEET_NAME);
-        console.log(`Updated Facebook for ${dateToUse}`);
-      } else {
-        console.warn(`No valid Facebook data rows to update for ${dateToUse}`);
-      }
-      if (twitterRowsForDate.length > 0) {
-        await updateSheet(auth, twitterRowsForDate, TWITTER_SHEET_NAME);
-        console.log(`Updated Twitter for ${dateToUse}`);
-      } else {
-        console.warn(`No valid Twitter data rows to update for ${dateToUse}`);
+        console.log(`Skipping group ${groupName} (${groupId}) - no profiles found`);
       }
     }
-    }
-    console.log('All dates processed and sheet updated.');
+    
+    // Print summary
+    console.log('\n=== Processing Complete ===');
+    console.log(`Processed ${results.length} groups:`);
+    
+    results.forEach(result => {
+      console.log(`- ${result.groupName} (${result.profileCount} profiles): ${result.spreadsheetUrl}`);
+    });
+    
   } catch (error) {
-    console.error(`Error in main function: ${error.message}`);
-    console.error(error.stack);
+    console.error(`Error in main process: ${error.message}`);
+    if (error.stack) {
+      console.error(error.stack);
+    }
   }
 };
 
-// Schedule runs
-const scheduleRuns = () => {
-  // Run every hour by default (adjust as needed)
-  const intervalMinutes = 60;
-  console.log(`Scheduling runs every ${intervalMinutes} minute(s)`);
-  
-  // Run immediately
-  main();
-  
-  // Then schedule
-  setInterval(main, intervalMinutes * 60 * 1000);
-};
-
-// Start the process
-console.log('Starting regular updates');
-scheduleRuns();
+// Run the main function
+main().catch(err => console.error('Unhandled error:', err));
