@@ -43,24 +43,111 @@ const BASE_URL = "https://api.sproutsocial.com/v1";
 const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
 const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
 
-// Save Drive credentials from the provided JSON
+// Check if Drive credentials exist, or create them from a source file
 const saveDriveCredentials = () => {
-  const credentials = {
-    "type": "service_account",
-    "project_id": "gen-lang-client-0318780732",
-    "private_key_id": "f119bb5117200bef22c8401d97a907550526a5eb",
-    "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCYH4fG/kHN9vLs\nzkBWlA9WLBgDwc0DIrgL0XIWDbtBzm30BdxMjLLJbBKv04pxYnXjYwXoeB6Cz0eL\nseHLcR4uRY4R8dX9MPlcWsUKV+OXSooHxNJ9OvTDG7LXHlDFGppOFDp/nD4k3bib\nkLhXoubuOM8VrdVFqsTGQvID0d5p81Hm5HktghDvcA0wWmO+sCgSbWKA7XZw0GIL\nvOi+nnQEDUXeDgHyDKWwd6XhFx5VMJs2ZWFASR273ayCQJiqGHQmsY1zpno2DooB\no+JrCsK4A/UrPaxPiqV73VHgkgxVgXxmR+48zQZoSSbfobGQTup0pCfJ3jGnI8x7\np2BMwvBRAgMBAAECggEAAjy3+KfneDfHFK8XlIJgy5zSRVdfvEmh3OghkjQVXntS\nhAPETLKmxDYw++mbtA1NdCiyFvwxwC0b1XDKNB2LsuTiWQ6WPd8PEsHxuwRGAEUI\nDMNS8GUqIXauQZJEQDLTBT4QSm1F/3EskGqfYGgQlv0qQ/yKiffQBSWpxR88cvDL\noURBZo+Yu8OWzRwHA+CYIjK3zk821afYhbCucP657EyobzimaWr2KZHoNKcBzrvc\n8xwkw5TVFXrI+4TJVqgMSxPHoV8NZBWuLoRmsVEHtzxOouxd8LFuMao/CR/lE7bq\n+UiIsXi5Zcj3r5AgmFW04bDMzvqGK7ztf86l4yz4YQKBgQDRz/5hs2uNm82R07lh\nnbzXwgMv6pepRMfhH8rb/9Bd7EekDuB0VYzV8m/CMMf+oM7eAPILpc7dFCtltEW2\niiGDIPerZYqj5BnA2MyZiJ80XZYCq7zqnjP77+pJGwVedoCtdAoT6XRsXPNSRBtl\n6iD8c/4D/fhQv/C+zAZz93wvoQKBgQC5nHLwENLJazjARMC3QGE5bVKsXOyp9pSq\ni/jrtnoKuysM3cffGlmTRiewiurh88jUrDy8HqCF7hoKkBZg/Hxbv5oN10ccr/89\naW3UtFf95/HXRyz+CX1Wu8I9vuk9vL2XfwOKaHvyPdZcdbl7wGUWFmGDOf0c8d02\n5KD82Q7CsQKBgQCYi5IXNN0Q42OOEBLrv0TK1ft9PiIwZpqwum3CkHbNovnfdRWK\nX5z6/L52wQLXxdFCJgvVniMOKBj5ZB1/f2SoMzL/Qd+QE0sKJFZ1lpix+Q0VOgor\nxwRiu2dq6aN4r84UzpZ5LbaBBv++I1iMO7Lp+eeIvYFqLHN8NVjHvftjoQKBgGOS\nsH5lKA9x+/H5cEFewkmiglWBTF0psTuE97bMH9Cd9ExkthLT+fXuDuDAxZ0NwVGG\nTNbGv2rZ/xJnlfnVuYkm0qhWMwoKyKzTYF5ZmVLXGYBZ6KMnyBu9gkjJoCrElBkv\nxGB+CPA9iD/1z9m5rwEYZJuXglgC0J/gKxU6BJchAoGBAKbEWEyy03ja2m08ejbl\nKidylJeuIE7hn1sb74qg1+F7xfehK2l1PwikgLgnX/75SOmizI8ncBnuiwK+zgdj\nrEd+VKbJUqXHtkmJLadfx0J51XYcin1mebbiLZDWwO2wKi7ULQJfo+6amqU4cMPv\nBd2O+OpVSl1cbzqxOIs5X0Ew\n-----END PRIVATE KEY-----\n",
-    "client_email": "automation-sheet@gen-lang-client-0318780732.iam.gserviceaccount.com",
-    "client_id": "109917942587527544122",
-    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-    "token_uri": "https://oauth2.googleapis.com/token",
-    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/automation-sheet%40gen-lang-client-0318780732.iam.gserviceaccount.com",
-    "universe_domain": "googleapis.com"
-  };
+  try {
+    // If drive credentials file already exists, don't overwrite it
+    if (fs.existsSync(DRIVE_CREDENTIALS_PATH)) {
+      console.log(`Drive credentials already exist at ${DRIVE_CREDENTIALS_PATH}`);
+      
+      // Verify the file contains valid JSON
+      try {
+        const fileContent = fs.readFileSync(DRIVE_CREDENTIALS_PATH, 'utf8');
+        const credentials = JSON.parse(fileContent);
+        
+        // Check for required fields
+        if (!credentials.private_key || !credentials.client_email) {
+          console.log('Existing credentials file is missing required fields, will recreate it.');
+          throw new Error('Invalid credentials format');
+        }
+        
+        // Check if private key looks valid (has proper BEGIN/END markers)
+        if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
+            !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
+          console.log('Existing credentials file has malformed private key, will recreate it.');
+          throw new Error('Malformed private key');
+        }
+        
+        return;
+      } catch (parseError) {
+        console.log(`Existing credentials file has issues, will recreate it: ${parseError.message}`);
+      }
+    }
+    
+    // Source credentials file path (use credentials.json if it exists)
+    const sourceCredentialsPath = path.join(__dirname, 'credentials.json');
+    
+    if (!fs.existsSync(sourceCredentialsPath)) {
+      throw new Error(`Source credentials file not found at ${sourceCredentialsPath}`);
+    }
+    
+    // Read credentials from source file
+    const credentials = JSON.parse(fs.readFileSync(sourceCredentialsPath, 'utf8'));
+    
+    // Ensure it has the required fields for a service account
+    if (!credentials.private_key || !credentials.client_email) {
+      throw new Error('Source credentials file is missing required service account fields');
+    }
+    
+    // Ensure private key has proper format
+    if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
+        !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
+      throw new Error('Source credentials file has malformed private key');
+    }
 
+    // Write to drive credentials file
   fs.writeFileSync(DRIVE_CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
   console.log(`Drive credentials saved to ${DRIVE_CREDENTIALS_PATH}`);
+  } catch (error) {
+    console.error(`Failed to save drive credentials: ${error.message}`);
+    console.error('Please ensure you have valid Google service account credentials in credentials.json');
+    console.error('You may need to generate new service account keys from the Google Cloud Console.');
+    process.exit(1); // Exit if we can't set up credentials - no point continuing
+  }
+};
+
+/**
+ * Verify Google Drive credentials by making a test API call
+ * @returns {Promise<boolean>} True if credentials are valid, false otherwise
+ */
+const verifyDriveCredentials = async () => {
+  try {
+    console.log('Verifying Google Drive credentials...');
+    
+    // Get Google Drive client
+    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
+    if (!drive || !sheets || !auth) {
+      throw new Error('Failed to initialize Google Drive client');
+    }
+    
+    // Make a simple API call to test authentication
+    // List files with a very small limit to minimize API usage
+    await drive.files.list({
+      pageSize: 1,
+      fields: 'files(id, name)'
+    });
+    
+    console.log('Google Drive credentials verified successfully!');
+    return true;
+  } catch (error) {
+    console.error(`Google Drive credentials verification failed: ${error.message}`);
+    
+    if (error.message.includes('invalid_grant') || 
+        error.message.includes('Invalid JWT') || 
+        error.message.includes('Token has been expired')) {
+      console.error('\nAuthentication error detected. The service account credentials are invalid or expired.');
+      console.error('Please generate new service account keys from the Google Cloud Console.');
+      console.error('1. Go to https://console.cloud.google.com/');
+      console.error('2. Select your project');
+      console.error('3. Go to IAM & Admin > Service Accounts');
+      console.error('4. Find your service account and create a new key');
+      console.error('5. Download the key as JSON and save it as credentials.json in this directory');
+      console.error('6. Delete the existing drive-credentials.json file');
+      console.error('7. Run this script again');
+    }
+    
+    return false;
+  }
 };
 
 /**
@@ -243,7 +330,14 @@ const main = async () => {
     // Save Drive credentials
     saveDriveCredentials();
     
-    // Fetch all groups
+    // Verify Drive credentials before proceeding
+    const credentialsValid = await verifyDriveCredentials();
+    if (!credentialsValid) {
+      console.error('Google Drive credentials verification failed. Cannot proceed with spreadsheet creation.');
+      console.error('Please fix the credentials issues and try again.');
+      return;
+    }    
+                    // Fetch all groups
     console.log('\n=== Fetching Customer Groups ===');
     const groups = await groupUtils.getCustomerGroups(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
     if (groups.length === 0) {
