@@ -56,14 +56,14 @@ const HEADERS = [
   'video_views_click_to_play',
   'video_views_repeat',
   'video_view_time',
+  'video_views_unique',
+  'posts_sent_count',
+  'posts_sent_by_post_type',
+  'posts_sent_by_content_type',
   'Engagements',
   'Engagement Rate (per Impression)',
   'Engagement Rate (per Follower)',
   'Click-Through Rate',
-  'video_views_unique',
-  'posts_sent_count',
-  'posts_sent_by_post_type',
-  'posts_sent_by_content_type'
 ];
 
 /**
@@ -161,14 +161,14 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       safeNumber(metrics['video_views_click_to_play']),
       safeNumber(metrics['video_views_repeat']),
       safeNumber(metrics['video_view_time']),
+      safeNumber(metrics['video_views_unique']),
+      safeNumber(metrics['posts_sent_count']),
+      safeNumber(metrics['posts_sent_by_post_type']),
+      safeNumber(metrics['posts_sent_by_content_type']),
       engagements,
       engagementRatePerImpression,
       engagementRatePerFollower,
       clickThroughRate,
-      safeNumber(metrics['video_views_unique']),
-      safeNumber(metrics['posts_sent_count']),
-      safeNumber(metrics['posts_sent_by_post_type']),
-      safeNumber(metrics['posts_sent_by_content_type'])
     ];
   } catch (err) {
     console.error('Error formatting Facebook analytics data:', err.message);

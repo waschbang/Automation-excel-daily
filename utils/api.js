@@ -68,132 +68,258 @@ const getProfileData = async (metadataUrl, token, profileIds) => {
 const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profileIds) => {
   console.log(`Processing data from ${startDate} to ${endDate}`);
   
-  // Function to chunk the date range into 3-month periods
-  const generateDateChunks = (start, end) => {
-    const chunks = [];
-    const startDate = new Date(start);
-    const endDate = new Date(end);
-    
-    let currentStart = new Date(startDate);
-    
-    while (currentStart < endDate) {
-      // Calculate end of this chunk (3 months from start)
-      let currentEnd = new Date(currentStart);
-      currentEnd.setMonth(currentEnd.getMonth() + 3);
-      
-      // If chunk end is after the overall end date, use the overall end date
-      if (currentEnd > endDate) {
-        currentEnd = new Date(endDate);
-      }
-      
-      chunks.push({
-        start: currentStart.toISOString().split('T')[0],
-        end: currentEnd.toISOString().split('T')[0]
-      });
-      
-      // Move to the next chunk start
-      currentStart = new Date(currentEnd);
-      currentStart.setDate(currentStart.getDate() + 1);
-    }
-    
-    return chunks;
-  };
+  // Filter out any empty or invalid profile IDs
+  const validProfileIds = profileIds.filter(id => id && id.toString().trim() !== '');
   
-  const dateChunks = generateDateChunks(startDate, endDate);
-  console.log(`Processing data in ${dateChunks.length} chunks of 3 months each`);
+  // Make sure we have valid profile IDs
+  if (validProfileIds.length === 0) {
+    console.error('No valid profile IDs provided');
+    return null;
+  }
   
+  // Ensure the date range is one year or less as required by the API
+  const startDateObj = new Date(startDate);
+  const endDateObj = new Date(endDate);
+  
+  // Calculate the difference in milliseconds
+  const dateDiff = endDateObj.getTime() - startDateObj.getTime();
+  // Convert to days
+  const daysDiff = dateDiff / (1000 * 60 * 60 * 24);
+  
+  // If the date range is more than 365 days, limit it to one year
+  let effectiveEndDate = endDate;
+  if (daysDiff > 365) {
+    const oneYearLater = new Date(startDateObj);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    oneYearLater.setDate(oneYearLater.getDate() - 1); // Subtract one day to stay within one year
+    effectiveEndDate = oneYearLater.toISOString().split('T')[0];
+    console.log(`Date range exceeds one year. Limiting to: ${startDate} to ${effectiveEndDate}`);
+  }
+  
+  console.log(`Processing data for range: ${startDate} to ${effectiveEndDate}`);
+  console.log(`Using ${validProfileIds.length} valid profile IDs`);
+  
+  // Create individual API requests for each profile ID to ensure compatibility
   const allResults = { data: [] };
-  const profileIdsStr = profileIds.join(', ');
   
-  // Process each chunk
-  for (let i = 0; i < dateChunks.length; i++) {
-    const { start: chunkStart, end: chunkEnd } = dateChunks[i];
-    const dateRange = `${chunkStart}...${chunkEnd}`;
-    
-    console.log(`Processing chunk ${i + 1}/${dateChunks.length}: ${dateRange}`);
-    
-    const payload = {
-      "filters": [
-        `customer_profile_id.eq(${profileIdsStr})`,
-        `reporting_period.in(${dateRange})`
-      ],
-      "metrics": [
-        "lifetime_snapshot.followers_count",
-        "net_follower_growth",
-        "followers_gained",
-        "followers_gained_organic",
-        "followers_gained_paid",
-        "followers_lost",
-        "lifetime_snapshot.fans_count",
-        "fans_gained",
-        "fans_gained_organic",
-        "fans_gained_paid",
-        "fans_lost",
-        "impressions",
-        "impressions_organic",
-        "impressions_viral",
-        "impressions_nonviral",
-        "impressions_paid",
-        "tab_views",
-        "tab_views_login",
-        "tab_views_logout",
-        "post_impressions",
-        "post_impressions_organic",
-        "post_impressions_viral",
-        "post_impressions_nonviral",
-        "post_impressions_paid",
-        "impressions_unique",
-        "impressions_organic_unique",
-        "impressions_viral_unique",
-        "impressions_nonviral_unique",
-        "impressions_paid_unique",
-        "reactions",
-        "comments_count",
-        "shares_count",
-        "post_link_clicks",
-        "post_content_clicks_other",
-        "profile_actions",
-        "post_engagements",
-        "video_views",
-        "video_views_organic",
-        "video_views_paid",
-        "video_views_autoplay",
-        "video_views_click_to_play",
-        "video_views_repeat",
-        "video_view_time",
-        "video_views_unique",
-        "posts_sent_count",
-        "posts_sent_by_post_type",
-        "posts_sent_by_content_type",
-        "calculated_engagements"
-      ],
-      "page": 1
-    };
-    
+  // Process each profile ID individually to ensure API compatibility
+  for (const profileId of validProfileIds) {
     try {
-      console.log(`Analytics API Request for ${dateRange}`);
+      console.log(`Processing analytics for profile ID: ${profileId}`);
+      
+      // Format the payload for an individual profile ID
+      // The API expects dates in the format 'reporting_period.in(2024-01-01...2024-12-31)'
+      const payload = {
+        "filters": [
+          `customer_profile_id.eq(${profileId})`,
+          `reporting_period.in(${startDate}...${effectiveEndDate})`
+        ],
+        "metrics": [
+          "lifetime_snapshot.followers_count",
+          "net_follower_growth",
+          "followers_gained",
+          "followers_gained_organic",
+          "followers_gained_paid",
+          "followers_lost",
+          "lifetime_snapshot.fans_count",
+          "fans_gained",
+          "fans_gained_organic",
+          "fans_gained_paid",
+          "fans_lost",
+          "impressions",
+          "impressions_organic",
+          "impressions_viral",
+          "impressions_nonviral",
+          "impressions_paid",
+          "tab_views",
+          "tab_views_login",
+          "tab_views_logout",
+          "post_impressions",
+          "post_impressions_organic",
+          "post_impressions_viral",
+          "post_impressions_nonviral",
+          "post_impressions_paid",
+          "impressions_unique",
+          "impressions_organic_unique",
+          "impressions_viral_unique",
+          "impressions_nonviral_unique",
+          "impressions_paid_unique",
+          "reactions",
+          "comments_count",
+          "shares_count",
+          "post_link_clicks",
+          "post_content_clicks_other",
+          "profile_actions",
+          "post_engagements",
+          "video_views",
+          "video_views_organic",
+          "video_views_paid",
+          "video_views_autoplay",
+          "video_views_click_to_play",
+          "video_views_repeat",
+          "video_view_time",
+          "video_views_unique",
+          "posts_sent_count",
+          "posts_sent_by_post_type",
+          "posts_sent_by_content_type",
+          "calculated_engagements"
+        ],
+        "page": 1
+      };
+      
+      console.log(`Making API request for profile ID: ${profileId}`);
+      console.log(`Using POST to ${analyticsUrl}`);
+      
       const response = await axios.post(analyticsUrl, payload, { headers: getSproutHeaders(token) });
       
       if (response.data && response.data.data && response.data.data.length > 0) {
-        console.log(`Received ${response.data.data.length} data points for range ${dateRange}`);
+        console.log(`Received ${response.data.data.length} data points for profile ${profileId}`);
         allResults.data = [...allResults.data, ...response.data.data];
       } else {
-        console.warn(`No analytics data found for range ${dateRange}`);
+        console.warn(`No analytics data found for profile ${profileId}`);
       }
+      
+      // Add a small delay between requests to avoid rate limiting
+      await sleep(1000);
+      
     } catch (error) {
-      console.error(`Error getting analytics data for ${dateRange}: ${error.message}`);
+      console.error(`Error getting analytics data for profile ${profileId}: ${error.message}`);
       if (error.response) {
-        console.error('API Error Response:', {
+        console.error(`API Error Response for profile ${profileId}:`, {
           status: error.response.status,
           data: JSON.stringify(error.response.data)
         });
       }
-      
-      // If we hit a rate limit, wait longer before continuing
-      if (error.response && (error.response.status === 429 || error.response.status === 403)) {
-        console.log('Rate limit hit, waiting 10 seconds before continuing...');
-        await sleep(10000);
+    }
+  }
+  
+  console.log(`Total data points collected across all profiles: ${allResults.data.length}`);
+  return allResults.data.length > 0 ? allResults : null;
+};
+
+/**
+ * Alternative implementation for getting analytics data with JSON payload
+ */
+const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, endDate, profileIds) => {
+  // Filter out any empty or invalid profile IDs
+  const validProfileIds = profileIds.filter(id => id && id.toString().trim() !== '');
+  
+  if (validProfileIds.length === 0) {
+    console.error('No valid profile IDs provided');
+    return null;
+  }
+  
+  // Ensure date range is within one year
+  let effectiveEndDate = endDate;
+  const startDateObj = new Date(startDate);
+  const endDateObj = new Date(endDate);
+  const daysDiff = (endDateObj.getTime() - startDateObj.getTime()) / (1000 * 60 * 60 * 24);
+  
+  if (daysDiff > 365) {
+    const oneYearLater = new Date(startDateObj);
+    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+    oneYearLater.setDate(oneYearLater.getDate() - 1);
+    effectiveEndDate = oneYearLater.toISOString().split('T')[0];
+  }
+  
+  // Use the original payload format that is known to work
+  const payload = {
+    "filters": [
+      validProfileIds.length === 1 
+        ? `customer_profile_id.eq(${validProfileIds[0]})` 
+        : `customer_profile_id.in(${validProfileIds.join(',')})`,
+      `reporting_period.between(${startDate},${effectiveEndDate})`
+    ],
+    "metrics": [
+      "lifetime_snapshot.followers_count",
+      "net_follower_growth",
+      "followers_gained",
+      "followers_gained_organic",
+      "followers_gained_paid",
+      "followers_lost",
+      "lifetime_snapshot.fans_count",
+      "fans_gained",
+      "fans_gained_organic",
+      "fans_gained_paid",
+      "fans_lost",
+      "impressions",
+      "impressions_organic",
+      "impressions_viral",
+      "impressions_nonviral",
+      "impressions_paid",
+      "tab_views",
+      "tab_views_login",
+      "tab_views_logout",
+      "post_impressions",
+      "post_impressions_organic",
+      "post_impressions_viral",
+      "post_impressions_nonviral",
+      "post_impressions_paid",
+      "impressions_unique",
+      "impressions_organic_unique",
+      "impressions_viral_unique",
+      "impressions_nonviral_unique",
+      "impressions_paid_unique",
+      "reactions",
+      "comments_count",
+      "shares_count",
+      "post_link_clicks",
+      "post_content_clicks_other",
+      "profile_actions",
+      "post_engagements",
+      "video_views",
+      "video_views_organic",
+      "video_views_paid",
+      "video_views_autoplay",
+      "video_views_click_to_play",
+      "video_views_repeat",
+      "video_view_time",
+      "video_views_unique",
+      "posts_sent_count",
+      "posts_sent_by_post_type",
+      "posts_sent_by_content_type",
+      "calculated_engagements"
+    ],
+    "page": 1
+  };
+  
+  const allResults = { data: [] };
+  
+  try {
+    console.log(`Analytics API Request for ${startDate} to ${effectiveEndDate}`);
+    console.log(`API Request Payload: ${JSON.stringify(payload, null, 2)}`);
+    
+    const response = await axios.post(analyticsUrl, payload, { headers: getSproutHeaders(token) });
+    
+    if (response.data && response.data.data && response.data.data.length > 0) {
+      console.log(`Received ${response.data.data.length} data points for range ${startDate} to ${effectiveEndDate}`);
+      allResults.data = [...allResults.data, ...response.data.data];
+    } else {
+      console.warn(`No analytics data found for range ${startDate} to ${effectiveEndDate}`);
+      if (response.data) {
+        console.log(`API Response: ${JSON.stringify(response.data, null, 2)}`);
       }
+    }
+  } catch (error) {
+    console.error(`Error getting analytics data for ${startDate} to ${effectiveEndDate}: ${error.message}`);
+    if (error.response) {
+      console.error('API Error Response:', {
+        status: error.response.status,
+        data: JSON.stringify(error.response.data)
+      });
+      
+      // Log more details about the request that failed
+      console.error('Failed Request Details:', {
+        url: analyticsUrl,
+        payload: JSON.stringify(payload),
+        headers: JSON.stringify(getSproutHeaders(token))
+      });
+    }
+    
+    // If we hit a rate limit, wait longer before continuing
+    if (error.response && (error.response.status === 429 || error.response.status === 403)) {
+      console.log('Rate limit hit, waiting 10 seconds before continuing...');
+      await sleep(10000);
     }
   }
   
@@ -221,6 +347,7 @@ module.exports = {
   getSproutHeaders,
   getProfileData,
   getAnalyticsData,
+  getAnalyticsDataWithJsonPayload,
   sleep,
   safeNumber
 };
