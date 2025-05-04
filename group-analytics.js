@@ -39,19 +39,27 @@ const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04OD
 const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
 const DRIVE_CREDENTIALS_PATH = path.join(__dirname, 'drive-credentials.json');
 
-// Date ranges for analytics (different date ranges for each folder)
+// Get yesterday's date in YYYY-MM-DD format for more complete analytics data
+const getCurrentDate = () => {
+  // Use yesterday's date instead of today to ensure complete metrics
+  // Social media platforms often have a delay in reporting analytics
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const year = yesterday.getFullYear();
+  const month = String(yesterday.getMonth() + 1).padStart(2, '0');
+  const day = String(yesterday.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Date ranges for analytics - only using one folder and only fetching today's data
 const FOLDER_CONFIGS = [
   {
     folderId: '1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r',
-    startDate: '2025-03-01',
-    endDate: '2025-05-01',
-    description: 'Q1 2025'
-  },
-  {
-    folderId: '1OA82RSaq0On_ERovDsZYUqeoMByyWruP',
-    startDate: '2025-03-01',
-    endDate: '2025-05-01',
-    description: 'Q4 2024'
+    startDate: getCurrentDate(), // Today's date as start date
+    endDate: getCurrentDate(),   // Today's date as end date
+    description: 'Daily Update'
   }
 ];
 
@@ -176,7 +184,8 @@ const verifyDriveCredentials = async () => {
  */
 const processGroupAnalytics = async (groupId, groupName, profiles) => {
   try {
-    console.log(`\n=== Processing Group: ${groupName} (${groupId}) ===`);
+    const groupStartTime = new Date();
+    console.log(`\n=== Processing Group: ${groupName} (${groupId}) at ${groupStartTime.toLocaleTimeString()} ===`);
     console.log(`Found ${profiles.length} profiles in this group`);
     
     // Get Google Drive client
@@ -270,6 +279,47 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
       console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName} from ${startDate} to ${endDate}`);
       
+      // First check if we already have data for today to avoid duplicates
+      let existingData = false;
+      try {
+        // Get the current date in the format used in the spreadsheet (YYYY-MM-DD)
+        const today = getCurrentDate();
+        
+        // Check if we already have data for today in the spreadsheet
+        for (const sheetName of createdSheets) {
+          const existingValues = await sheetsUtils.getSheetValues(auth, spreadsheetId, sheetName, 'A:A');
+          if (existingValues && existingValues.length > 1) {
+            // Check if today's date exists in column A
+            const todayExists = existingValues.some(row => row[0] === today);
+            if (todayExists) {
+              console.log(`Data for today (${today}) already exists in sheet ${sheetName}. Skipping update.`);
+              existingData = true;
+              break;
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(`Error checking for existing data: ${error.message}. Will proceed with update.`);
+      }
+      
+      // Skip fetching if we already have today's data
+      if (existingData) {
+        console.log(`Skipping analytics update for group ${groupName} as today's data already exists.`);
+        results.push({
+          groupId,
+          groupName,
+          folderId,
+          description,
+          dateRange: `${startDate} to ${endDate}`,
+          profileCount: profiles.length,
+          spreadsheetId,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
+          status: 'Already updated today'
+        });
+        continue; // Skip to next folder
+      }
+      
+      // Fetch fresh data from API
       const analyticsData = await apiUtils.getAnalyticsData(
         ANALYTICS_URL,
         SPROUT_API_TOKEN,
@@ -277,6 +327,26 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
         endDate,
         profileIds
       );
+      
+      // Log the raw data for debugging
+      console.log(`Received ${analyticsData?.data?.length || 0} data points from API`);
+      if (analyticsData?.data?.length > 0) {
+        // Log the first data point's metrics to see all available fields
+        const sampleDataPoint = analyticsData.data[0];
+        console.log('\n=== SAMPLE API DATA POINT ===');
+        console.log('Date:', sampleDataPoint.dimensions?.reporting_period || sampleDataPoint.dimensions?.['reporting_period.by(day)']);
+        console.log('Profile ID:', sampleDataPoint.dimensions?.customer_profile_id);
+        console.log('\nAVAILABLE METRICS:');
+        console.log('----------------');
+        
+        // Sort metrics by name for easier reading
+        const metricKeys = Object.keys(sampleDataPoint.metrics || {}).sort();
+        metricKeys.forEach(key => {
+          console.log(`${key}: ${sampleDataPoint.metrics[key]}`);
+        });
+        
+        console.log('\nSample data point (full):', JSON.stringify(sampleDataPoint, null, 2));
+      }
       
       if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
         console.warn(`No analytics data found for group ${groupName} in period ${startDate} to ${endDate}`);
@@ -360,6 +430,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       
       // Update sheets with data
       const updatePromises = [];
+      const sheetTimers = {};
       
       for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
         if (rows.length > 0) {
@@ -367,8 +438,31 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
           if (createdSheets.includes(sheetName)) {
             const module = networkModules[networkType];
             if (module && module.updateSheet) {
-              console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
-              updatePromises.push(module.updateSheet(sheetsUtils, auth, spreadsheetId, rows));
+              // Record start time for this sheet
+              const sheetStartTime = new Date();
+              console.log(`Starting ${sheetName} sheet update at ${sheetStartTime.toLocaleTimeString()} with ${rows.length} rows`);
+              
+              // Store the start time for later calculation
+              sheetTimers[sheetName] = sheetStartTime;
+              
+              // Wrap the update in a function that logs timing information
+              const updateWithTiming = async () => {
+                try {
+                  await module.updateSheet(sheetsUtils, auth, spreadsheetId, rows);
+                  const sheetEndTime = new Date();
+                  const sheetTimeMs = sheetEndTime - sheetTimers[sheetName];
+                  const sheetTimeSec = Math.round(sheetTimeMs / 1000);
+                  console.log(`Completed ${sheetName} sheet update at ${sheetEndTime.toLocaleTimeString()}. Time taken: ${sheetTimeSec} seconds`);
+                } catch (error) {
+                  const sheetEndTime = new Date();
+                  const sheetTimeMs = sheetEndTime - sheetTimers[sheetName];
+                  const sheetTimeSec = Math.round(sheetTimeMs / 1000);
+                  console.error(`Error updating ${sheetName} sheet after ${sheetTimeSec} seconds: ${error.message}`);
+                  throw error; // Re-throw to maintain original error handling
+                }
+              };
+              
+              updatePromises.push(updateWithTiming());
             } else {
               console.log(`No updateSheet method found for ${networkType}`);
             }
@@ -398,14 +492,30 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       });
     }
     
+    // Calculate and log the total time taken
+    const groupEndTime = new Date();
+    const executionTimeMs = groupEndTime - groupStartTime;
+    const executionTimeSec = Math.round(executionTimeMs / 1000);
+    const executionTimeMin = Math.round(executionTimeSec / 60 * 10) / 10;
+    
+    console.log(`\n=== Completed Group: ${groupName} (${groupId}) at ${groupEndTime.toLocaleTimeString()} ===`);
+    console.log(`Total time taken: ${executionTimeMin} minutes (${executionTimeSec} seconds)`);
+    console.log(`Spreadsheet URL: https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`);
+    
     return results;
   } catch (error) {
-    console.error(`Error processing group ${groupName}:`, error);
+    // Log error with timing information
+    const groupEndTime = new Date();
+    const executionTimeMs = groupEndTime - groupStartTime;
+    const executionTimeSec = Math.round(executionTimeMs / 1000);
+    const executionTimeMin = Math.round(executionTimeSec / 60 * 10) / 10;
+    
+    console.error(`Error processing group ${groupName} after ${executionTimeMin} minutes:`, error);
     return [{
       groupId,
       groupName,
       profileCount: profiles.length,
-      status: `Error: ${error.message}`
+      status: `Error after ${executionTimeMin} minutes: ${error.message}`
     }];
   }
 };
@@ -415,11 +525,25 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
  */
 const main = async () => {
   try {
-    console.log('Starting Group Analytics Processing');
+    const startTime = new Date();
+    console.log(`Starting Group Analytics Processing at ${startTime.toLocaleTimeString()}`);
+    
+    // Track execution time
+    const trackTime = (label) => {
+      const currentTime = new Date();
+      const elapsedMs = currentTime - startTime;
+      const elapsedSec = Math.round(elapsedMs / 1000);
+      const elapsedMin = Math.round(elapsedSec / 60 * 10) / 10;
+      console.log(`[TIMING] ${label}: ${elapsedMin} minutes (${elapsedSec} seconds)`);
+      return currentTime;
+    };
+    
+    trackTime('Process started');
     
     // Save Drive credentials with better error handling
     try {
       saveDriveCredentials();
+      trackTime('Drive credentials saved');
     } catch (credError) {
       console.error(`Error saving drive credentials: ${credError.message}`);
       console.error('Continuing with existing credentials if available...');
@@ -453,9 +577,14 @@ const main = async () => {
       // Continue execution with warning instead of returning
     }
     
+    trackTime('Credentials verification complete');
+    
     // Fetch all groups with retry logic
     console.log('\n=== Fetching Customer Groups ===');
     let groups = [];
+    trackTime('Fetching customer groups started');
+    const groupFetchStartTime = trackTime('Fetching customer groups');
+    
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         console.log(`[API CALL] Fetching customer groups from: ${BASE_URL}/${CUSTOMER_ID}/metadata/customer/groups (attempt ${attempt}/3)`);
@@ -561,10 +690,10 @@ const main = async () => {
             allResults.push(...results);
           }
           
-          // Add a delay after processing each group to avoid hitting API quotas
-          // Wait 30 seconds between groups
-          console.log(`Waiting 30 seconds before processing the next group to avoid API quota limits...`);
-          await sleep(30000);
+          // Add a much longer delay after processing each group to avoid hitting API quotas
+          // Wait 5 minutes between groups
+          console.log(`Waiting 5 minutes before processing the next group to avoid API quota limits...`);
+          await sleep(5 * 60 * 1000); // 5 minutes in milliseconds
         } catch (error) {
           console.error(`Error processing group ${groupName}: ${error.message}`);
           if (error.stack) {
@@ -616,5 +745,33 @@ const main = async () => {
   }
 };
 
-// Run the main function
-main().catch(err => console.error('Unhandled error:', err));
+// Set up global unhandled exception handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('CRITICAL ERROR: Uncaught Exception detected');
+  console.error(`Error: ${error.message}`);
+  console.error(`Stack: ${error.stack}`);
+  console.error('The script will continue execution despite this error.');
+  // Don't exit the process - allow it to continue
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('CRITICAL ERROR: Unhandled Promise Rejection detected');
+  console.error(`Reason: ${reason}`);
+  console.error('The script will continue execution despite this error.');
+  // Don't exit the process - allow it to continue
+});
+
+// Add a watchdog timer to prevent indefinite hangs
+const WATCHDOG_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours max runtime
+const watchdog = setTimeout(() => {
+  console.error(`WATCHDOG ALERT: Script has been running for ${WATCHDOG_TIMEOUT/1000/60/60} hours.`);
+  console.error('This may indicate a hang or infinite loop condition.');
+  console.error('Script execution will continue, but you may want to investigate.');
+}, WATCHDOG_TIMEOUT);
+watchdog.unref(); // Don't let the watchdog prevent the process from exiting normally
+
+// Run the main function with comprehensive error handling
+main().catch(err => {
+  console.error('Unhandled error in main function:', err);
+  console.error('Script execution completed with errors, but did not crash.');
+});

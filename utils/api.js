@@ -87,14 +87,15 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
   const daysDiff = dateDiff / (1000 * 60 * 60 * 24);
   
   // If the date range is more than 365 days, limit it to one year
-  let effectiveEndDate = endDate;
-  if (daysDiff > 365) {
-    const oneYearLater = new Date(startDateObj);
-    oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-    oneYearLater.setDate(oneYearLater.getDate() - 1); // Subtract one day to stay within one year
-    effectiveEndDate = oneYearLater.toISOString().split('T')[0];
-    console.log(`Date range exceeds one year. Limiting to: ${startDate} to ${effectiveEndDate}`);
-  }
+  // If the date range is more than 365 days, limit it to one year
+let effectiveEndDate = endDate;
+if (daysDiff > 365) {
+  const oneYearLater = new Date(startDateObj);
+  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
+  oneYearLater.setDate(oneYearLater.getDate() - 1); // Subtract one day to stay within one year
+  effectiveEndDate = oneYearLater.toISOString().split('T')[0];
+  console.log(`Date range exceeds one year. Limiting to: ${startDate} to ${effectiveEndDate}`);
+}
   
   console.log(`Processing data for range: ${startDate} to ${effectiveEndDate}`);
   console.log(`Using ${validProfileIds.length} valid profile IDs`);
@@ -105,7 +106,7 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
   // Process each profile ID individually to ensure API compatibility
   for (const profileId of validProfileIds) {
     try {
-      console.log(`Processing analytics for profile ID: ${profileId}`);
+      console.log(`\n=== API CALL: Processing analytics for profile ID: ${profileId} ===`);
       
       // Format the payload for an individual profile ID
       // The API expects dates in the format 'reporting_period.in(2024-01-01...2024-12-31)'
@@ -186,9 +187,9 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
         console.warn(`No analytics data found for profile ${profileId}`);
       }
       
-      // Add a small delay between requests to avoid rate limiting with Sprout Social API
-      console.log(`Waiting 1 second before processing the next profile...`);
-      await sleep(1000);
+      // Minimal delay between requests - just enough to avoid rate limiting
+      console.log(`Minimal delay before processing the next profile...`);
+      await sleep(300); // 300ms delay instead of 1000ms
       
     } catch (error) {
       console.error(`Error getting analytics data for profile ${profileId}: ${error.message}`);
@@ -326,8 +327,8 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
     
     // If we hit a rate limit, wait before continuing
     if (error.response && (error.response.status === 429 || error.response.status === 403)) {
-      console.log('Rate limit hit, waiting 15 seconds before continuing...');
-      await sleep(15000); // Reduced to 15 seconds for Sprout Social API
+      console.log('Rate limit hit, waiting 5 seconds before continuing...');
+      await sleep(5000); // Further reduced to 5 seconds for faster processing
     }
   }
   

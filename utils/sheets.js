@@ -124,16 +124,84 @@ const updateSheet = async (auth, spreadsheetId, rows, sheetName) => {
   try {
     console.log('Updating sheet with rows:', rows.length);
     console.log('First row sample:', rows[0]);
-
-    const response = await sheets.spreadsheets.values.get({
+    
+    // Get today's date in the same format as stored in the sheet (YYYY-MM-DD)
+    const today = new Date().toISOString().split('T')[0];
+    console.log(`Checking for existing data for date: ${today}`);
+    
+    // Get all existing data to check for today's date
+    const existingDataResponse = await sheets.spreadsheets.values.get({
       auth,
       spreadsheetId,
-      range: `${sheetName}!A:A`,
+      range: `${sheetName}!A:F`, // Include date column and profile ID columns
     });
-
-    const nextRow = (response.data.values ? response.data.values.length : 0) + 1;
+    
+    const existingData = existingDataResponse.data.values || [];
+    console.log(`Found ${existingData.length} existing rows in the sheet`);
+    
+    // Skip header row if it exists
+    const dataToCheck = existingData.length > 0 ? existingData.slice(1) : [];
+    
+    // Function to normalize dates for comparison
+    const normalizeDate = (dateStr) => {
+      if (!dateStr) return '';
+      // Try to convert to a standard format YYYY-MM-DD
+      try {
+        const date = new Date(dateStr);
+        return date.toISOString().split('T')[0]; // Returns YYYY-MM-DD
+      } catch (e) {
+        return dateStr; // Return original if parsing fails
+      }
+    };
+    
+    // Get yesterday's date as well since we're now fetching yesterday's data
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    
+    // Check for both today's and yesterday's data for these profiles
+    const recentData = dataToCheck.filter(row => {
+      const rowDate = normalizeDate(row[0]);
+      return rowDate === today || rowDate === yesterdayStr;
+    });
+    
+    if (recentData.length > 0) {
+      console.log(`Found ${recentData.length} existing rows for recent dates (${yesterdayStr} or ${today})`);
+      
+      // Filter out rows that already exist for the same date and profile ID
+      const newRows = rows.filter(newRow => {
+        // Each new row should have date at index 0 and profile ID at index 4
+        const newRowDate = normalizeDate(newRow[0]);
+        const newRowProfileId = String(newRow[4]).trim(); // Normalize profile ID
+        
+        // Check if this profile's data already exists
+        const exists = recentData.some(existingRow => {
+          const existingRowDate = normalizeDate(existingRow[0]);
+          const existingRowProfileId = String(existingRow[4]).trim(); // Normalize profile ID
+          
+          return existingRowDate === newRowDate && existingRowProfileId === newRowProfileId;
+        });
+        
+        return !exists;
+      });
+      
+      if (newRows.length === 0) {
+        console.log('All data for today already exists in the sheet. No update needed.');
+        return true; // Return success since no update was needed
+      }
+      
+      console.log(`Adding ${newRows.length} new rows that don't already exist for today`);
+      rows = newRows; // Replace rows with filtered rows
+    }
+    
+    // Get the next row to append data - account for header row
+    // If there's existing data, we need to add rows after the last row
+    // The +1 accounts for the header row that's already in the sheet
+    const nextRow = existingData.length > 0 ? existingData.length + 1 : 2;
     const lastRow = nextRow + rows.length - 1;
     const lastCol = getColumnLetter(rows[0].length);
+    
+    console.log(`Appending data starting at row ${nextRow} (after existing ${existingData.length} rows)`);
 
     console.log('Sheet update details:', {
       nextRow,
@@ -180,10 +248,35 @@ const getColumnLetter = (colNum) => {
   return letter;
 };
 
+/**
+ * Get values from a sheet range
+ * @param {Object} auth - Google auth client
+ * @param {string} spreadsheetId - Google Spreadsheet ID
+ * @param {string} sheetName - Name of the sheet
+ * @param {string} range - Range to get (e.g., 'A1:B10' or 'A:A')
+ * @returns {Promise<Array>} Array of row values
+ */
+const getSheetValues = async (auth, spreadsheetId, sheetName, range) => {
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId,
+      range: `${sheetName}!${range}`,
+      valueRenderOption: 'UNFORMATTED_VALUE'
+    });
+    
+    return response.data.values || [];
+  } catch (error) {
+    console.error(`Error getting sheet values: ${error.message}`);
+    return [];
+  }
+};
+
 module.exports = {
   getGoogleAuth,
   createSheetIfNotExists,
   setupSheetHeaders,
   updateSheet,
-  getColumnLetter
+  getColumnLetter,
+  getSheetValues
 };

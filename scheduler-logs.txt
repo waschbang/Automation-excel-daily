@@ -1,0 +1,592 @@
+[2025-05-04T14:18:52.719Z] Scheduler set to run DAILY at 19:40
+[2025-05-04T14:18:52.723Z] Running initial analytics update on startup...
+[2025-05-04T14:18:52.724Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:18:52.725Z] Start time: 5/4/2025, 7:48:52 PM
+[2025-05-04T14:18:52.725Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:18:52.725Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:18:52.726Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:18:52.726Z] Max buffer size: 50MB
+[2025-05-04T14:18:52.726Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:18:52.735Z] Scheduler started. Next run scheduled for: Mon May 05 2025 19:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:18:52.735Z] Script will run daily at 19:40
+[2025-05-04T14:19:03.207Z] Scheduler stopping...
+[2025-05-04T14:19:21.925Z] Scheduler set to run DAILY at 19:50
+[2025-05-04T14:19:21.929Z] Running initial analytics update on startup...
+[2025-05-04T14:19:21.930Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:19:21.931Z] Start time: 5/4/2025, 7:49:21 PM
+[2025-05-04T14:19:21.931Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:19:21.932Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:19:21.932Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:19:21.933Z] Max buffer size: 50MB
+[2025-05-04T14:19:21.933Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:19:21.941Z] Scheduler started. Next run scheduled for: Sun May 04 2025 19:50:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:19:21.941Z] Script will run daily at 19:50
+[2025-05-04T14:20:00.017Z] Running scheduled job at 5/4/2025, 7:50:00 PM
+[2025-05-04T14:20:00.018Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:20:00.019Z] Start time: 5/4/2025, 7:50:00 PM
+[2025-05-04T14:20:00.019Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:20:00.020Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:20:00.020Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:20:00.021Z] Max buffer size: 50MB
+[2025-05-04T14:20:00.021Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:22:44.477Z] Scheduler stopping...
+[2025-05-04T14:22:50.098Z] Scheduler set to run DAILY at 19:50
+[2025-05-04T14:22:50.101Z] Running initial analytics update on startup...
+[2025-05-04T14:22:50.102Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:22:50.103Z] Start time: 5/4/2025, 7:52:50 PM
+[2025-05-04T14:22:50.103Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:22:50.104Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:22:50.104Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:22:50.105Z] Max buffer size: 50MB
+[2025-05-04T14:22:50.105Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:22:50.114Z] Scheduler started. Next run scheduled for: Mon May 05 2025 19:50:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:22:50.114Z] Script will run daily at 19:50
+[2025-05-04T14:22:52.366Z] Scheduler stopping...
+[2025-05-04T14:23:00.559Z] Scheduler set to run DAILY at 19:53
+[2025-05-04T14:23:00.562Z] Running initial analytics update on startup...
+[2025-05-04T14:23:00.563Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:23:00.564Z] Start time: 5/4/2025, 7:53:00 PM
+[2025-05-04T14:23:00.564Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:23:00.564Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:23:00.565Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:23:00.565Z] Max buffer size: 50MB
+[2025-05-04T14:23:00.566Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:23:00.574Z] Scheduler started. Next run scheduled for: Mon May 05 2025 19:53:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:23:00.574Z] Script will run daily at 19:53
+[2025-05-04T14:29:16.159Z] Scheduler stopping...
+[2025-05-04T14:29:47.736Z] Scheduler set to run DAILY at 20:00
+[2025-05-04T14:29:47.741Z] Running initial analytics update on startup...
+[2025-05-04T14:29:47.741Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:29:47.742Z] Start time: 5/4/2025, 7:59:47 PM
+[2025-05-04T14:29:47.742Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:29:47.743Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:29:47.743Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:29:47.743Z] Max buffer size: 50MB
+[2025-05-04T14:29:47.743Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:29:47.752Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:00:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:29:47.752Z] Script will run daily at 20:00
+[2025-05-04T14:30:00.008Z] Running scheduled job at 5/4/2025, 8:00:00 PM
+[2025-05-04T14:30:00.009Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:30:00.010Z] Start time: 5/4/2025, 8:00:00 PM
+[2025-05-04T14:30:00.010Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:30:00.010Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:30:00.011Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:30:00.011Z] Max buffer size: 50MB
+[2025-05-04T14:30:00.012Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:32:30.429Z] Scheduler stopping...
+[2025-05-04T14:32:47.635Z] Scheduler set to run DAILY at 20:03
+[2025-05-04T14:32:47.640Z] Running initial analytics update on startup...
+[2025-05-04T14:32:47.640Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:32:47.641Z] Start time: 5/4/2025, 8:02:47 PM
+[2025-05-04T14:32:47.641Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:32:47.641Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:32:47.642Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:32:47.642Z] Max buffer size: 50MB
+[2025-05-04T14:32:47.642Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:32:47.650Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:03:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:32:47.651Z] Script will run daily at 20:03
+[2025-05-04T14:33:00.011Z] Running scheduled job at 5/4/2025, 8:03:00 PM
+[2025-05-04T14:33:00.012Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:33:00.013Z] Start time: 5/4/2025, 8:03:00 PM
+[2025-05-04T14:33:00.013Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:33:00.014Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:33:00.015Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:33:00.016Z] Max buffer size: 50MB
+[2025-05-04T14:33:00.016Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:45:06.168Z] Scheduler stopping...
+[2025-05-04T14:48:14.669Z] Scheduler set to run DAILY at 20:19
+[2025-05-04T14:48:14.674Z] Running initial analytics update on startup...
+[2025-05-04T14:48:14.674Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:48:14.675Z] Start time: 5/4/2025, 8:18:14 PM
+[2025-05-04T14:48:14.675Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:48:14.676Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:48:14.676Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:48:14.676Z] Max buffer size: 50MB
+[2025-05-04T14:48:14.676Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:48:14.684Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:19:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:48:14.685Z] Script will run daily at 20:19
+[2025-05-04T14:49:00.015Z] Running scheduled job at 5/4/2025, 8:19:00 PM
+[2025-05-04T14:49:00.016Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:49:00.016Z] Start time: 5/4/2025, 8:19:00 PM
+[2025-05-04T14:49:00.017Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:49:00.017Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:49:00.017Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:49:00.018Z] Max buffer size: 50MB
+[2025-05-04T14:49:00.018Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:53:06.279Z] Scheduler stopping...
+[2025-05-04T14:54:30.272Z] Scheduler set to run DAILY at 20:19
+[2025-05-04T14:54:30.275Z] Running initial analytics update on startup...
+[2025-05-04T14:54:30.276Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:54:30.277Z] Start time: 5/4/2025, 8:24:30 PM
+[2025-05-04T14:54:30.277Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:54:30.278Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:54:30.278Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:54:30.278Z] Max buffer size: 50MB
+[2025-05-04T14:54:30.279Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:54:30.290Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:19:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:54:30.290Z] Script will run daily at 20:19
+[2025-05-04T14:54:47.155Z] Scheduler set to run DAILY at 20:19
+[2025-05-04T14:54:47.159Z] Running initial analytics update on startup...
+[2025-05-04T14:54:47.160Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:54:47.161Z] Start time: 5/4/2025, 8:24:47 PM
+[2025-05-04T14:54:47.161Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:54:47.161Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:54:47.162Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:54:47.162Z] Max buffer size: 50MB
+[2025-05-04T14:54:47.162Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:54:47.170Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:19:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:54:47.171Z] Script will run daily at 20:19
+[2025-05-04T14:55:31.805Z] Scheduler stopping...
+[2025-05-04T14:56:59.059Z] Scheduler set to run DAILY at 20:19
+[2025-05-04T14:56:59.063Z] Running initial analytics update on startup...
+[2025-05-04T14:56:59.063Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:56:59.064Z] Start time: 5/4/2025, 8:26:59 PM
+[2025-05-04T14:56:59.064Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:56:59.065Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:56:59.065Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:56:59.065Z] Max buffer size: 50MB
+[2025-05-04T14:56:59.066Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:56:59.075Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:19:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:56:59.075Z] Script will run daily at 20:19
+[2025-05-04T14:57:20.907Z] Scheduler stopping...
+[2025-05-04T14:57:32.441Z] Scheduler set to run DAILY at 20:28
+[2025-05-04T14:57:32.445Z] Running initial analytics update on startup...
+[2025-05-04T14:57:32.446Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:57:32.446Z] Start time: 5/4/2025, 8:27:32 PM
+[2025-05-04T14:57:32.447Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:57:32.447Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:57:32.448Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:57:32.448Z] Max buffer size: 50MB
+[2025-05-04T14:57:32.448Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T14:57:32.457Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:28:00 GMT+0530 (India Standard Time)
+[2025-05-04T14:57:32.457Z] Script will run daily at 20:28
+[2025-05-04T14:58:00.011Z] Running scheduled job at 5/4/2025, 8:28:00 PM
+[2025-05-04T14:58:00.012Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T14:58:00.013Z] Start time: 5/4/2025, 8:28:00 PM
+[2025-05-04T14:58:00.013Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T14:58:00.014Z] Date range: Today only (2025-05-04)
+[2025-05-04T14:58:00.014Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T14:58:00.014Z] Max buffer size: 50MB
+[2025-05-04T14:58:00.015Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:04:36.297Z] Scheduler stopping...
+[2025-05-04T15:04:50.017Z] Scheduler set to run DAILY at 20:28
+[2025-05-04T15:04:50.020Z] Running initial analytics update on startup...
+[2025-05-04T15:04:50.021Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:04:50.022Z] Start time: 5/4/2025, 8:34:50 PM
+[2025-05-04T15:04:50.022Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:04:50.022Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:04:50.023Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:04:50.023Z] Max buffer size: 50MB
+[2025-05-04T15:04:50.023Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:04:50.032Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:28:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:04:50.032Z] Script will run daily at 20:28
+[2025-05-04T15:04:58.698Z] Scheduler stopping...
+[2025-05-04T15:05:07.502Z] Scheduler set to run DAILY at 20:36
+[2025-05-04T15:05:07.506Z] Running initial analytics update on startup...
+[2025-05-04T15:05:07.506Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:05:07.507Z] Start time: 5/4/2025, 8:35:07 PM
+[2025-05-04T15:05:07.508Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:05:07.508Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:05:07.509Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:05:07.509Z] Max buffer size: 50MB
+[2025-05-04T15:05:07.510Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:05:07.518Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:36:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:05:07.518Z] Script will run daily at 20:36
+[2025-05-04T15:06:00.012Z] Running scheduled job at 5/4/2025, 8:36:00 PM
+[2025-05-04T15:06:00.013Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:06:00.013Z] Start time: 5/4/2025, 8:36:00 PM
+[2025-05-04T15:06:00.014Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:06:00.014Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:06:00.015Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:06:00.015Z] Max buffer size: 50MB
+[2025-05-04T15:06:00.015Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:16:19.926Z] Scheduler stopping...
+[2025-05-04T15:16:28.585Z] Scheduler set to run DAILY at 20:47
+[2025-05-04T15:16:28.589Z] Running initial analytics update on startup...
+[2025-05-04T15:16:28.589Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:16:28.590Z] Start time: 5/4/2025, 8:46:28 PM
+[2025-05-04T15:16:28.590Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:16:28.590Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:16:28.591Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:16:28.591Z] Max buffer size: 50MB
+[2025-05-04T15:16:28.591Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:16:28.600Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:47:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:16:28.600Z] Script will run daily at 20:47
+[2025-05-04T15:16:29.445Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+C:\Users\Laptop-1077\Desktop\trial\Automation-excel\utils\drive.js:666
+    } catch (error) {
+      ^^^^^
+
+SyntaxError: Unexpected token 'catch'
+    at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+    at Module._compile (node:internal/modules/cjs/loader:1704:20)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.require (node:internal/modules/cjs/loader:1487:12)
+    at require (node:internal/modules/helpers:135:16)
+    at Object.<anonymous> (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:17:20)
+
+Node.js v22.15.0
+
+[2025-05-04T15:16:29.445Z] Script failed after 0 minutes (1 seconds)
+[2025-05-04T15:16:31.933Z] Scheduler stopping...
+[2025-05-04T15:16:34.653Z] Scheduler set to run DAILY at 20:47
+[2025-05-04T15:16:34.657Z] Running initial analytics update on startup...
+[2025-05-04T15:16:34.658Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:16:34.659Z] Start time: 5/4/2025, 8:46:34 PM
+[2025-05-04T15:16:34.659Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:16:34.659Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:16:34.660Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:16:34.660Z] Max buffer size: 50MB
+[2025-05-04T15:16:34.660Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:16:34.668Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:47:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:16:34.669Z] Script will run daily at 20:47
+[2025-05-04T15:16:35.518Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+C:\Users\Laptop-1077\Desktop\trial\Automation-excel\utils\drive.js:666
+    } catch (error) {
+      ^^^^^
+
+SyntaxError: Unexpected token 'catch'
+    at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+    at Module._compile (node:internal/modules/cjs/loader:1704:20)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.require (node:internal/modules/cjs/loader:1487:12)
+    at require (node:internal/modules/helpers:135:16)
+    at Object.<anonymous> (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:17:20)
+
+Node.js v22.15.0
+
+[2025-05-04T15:16:35.518Z] Script failed after 0 minutes (1 seconds)
+[2025-05-04T15:17:00.007Z] Running scheduled job at 5/4/2025, 8:47:00 PM
+[2025-05-04T15:17:00.008Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:17:00.009Z] Start time: 5/4/2025, 8:47:00 PM
+[2025-05-04T15:17:00.009Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:17:00.010Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:17:00.010Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:17:00.010Z] Max buffer size: 50MB
+[2025-05-04T15:17:00.011Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:17:00.903Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+C:\Users\Laptop-1077\Desktop\trial\Automation-excel\utils\drive.js:666
+    } catch (error) {
+      ^^^^^
+
+SyntaxError: Unexpected token 'catch'
+    at wrapSafe (node:internal/modules/cjs/loader:1662:18)
+    at Module._compile (node:internal/modules/cjs/loader:1704:20)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Module.require (node:internal/modules/cjs/loader:1487:12)
+    at require (node:internal/modules/helpers:135:16)
+    at Object.<anonymous> (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:17:20)
+
+Node.js v22.15.0
+
+[2025-05-04T15:17:00.904Z] Script failed after 0 minutes (1 seconds)
+[2025-05-04T15:17:02.198Z] Scheduler stopping...
+[2025-05-04T15:19:16.397Z] Scheduler set to run DAILY at 20:47
+[2025-05-04T15:19:16.401Z] Running initial analytics update on startup...
+[2025-05-04T15:19:16.401Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:19:16.402Z] Start time: 5/4/2025, 8:49:16 PM
+[2025-05-04T15:19:16.402Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:19:16.403Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:19:16.403Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:19:16.403Z] Max buffer size: 50MB
+[2025-05-04T15:19:16.403Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:19:16.412Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:47:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:19:16.413Z] Script will run daily at 20:47
+[2025-05-04T15:20:12.847Z] Scheduler set to run DAILY at 20:47
+[2025-05-04T15:20:12.851Z] Running initial analytics update on startup...
+[2025-05-04T15:20:12.852Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:20:12.852Z] Start time: 5/4/2025, 8:50:12 PM
+[2025-05-04T15:20:12.852Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:20:12.853Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:20:12.853Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:20:12.853Z] Max buffer size: 50MB
+[2025-05-04T15:20:12.853Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:20:12.861Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:47:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:20:12.862Z] Script will run daily at 20:47
+[2025-05-04T15:20:15.767Z] Scheduler stopping...
+[2025-05-04T15:20:25.209Z] Scheduler set to run DAILY at 20:51
+[2025-05-04T15:20:25.212Z] Running initial analytics update on startup...
+[2025-05-04T15:20:25.212Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:20:25.213Z] Start time: 5/4/2025, 8:50:25 PM
+[2025-05-04T15:20:25.214Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:20:25.214Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:20:25.214Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:20:25.215Z] Max buffer size: 50MB
+[2025-05-04T15:20:25.215Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:20:25.224Z] Scheduler started. Next run scheduled for: Sun May 04 2025 20:51:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:20:25.224Z] Script will run daily at 20:51
+[2025-05-04T15:21:00.043Z] Running scheduled job at 5/4/2025, 8:51:00 PM
+[2025-05-04T15:21:00.045Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:21:00.046Z] Start time: 5/4/2025, 8:51:00 PM
+[2025-05-04T15:21:00.046Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:21:00.047Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:21:00.048Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:21:00.049Z] Max buffer size: 50MB
+[2025-05-04T15:21:00.049Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:29:33.431Z] Scheduler stopping...
+[2025-05-04T15:30:04.522Z] Scheduler set to run DAILY at 20:51
+[2025-05-04T15:30:04.526Z] Running initial analytics update on startup...
+[2025-05-04T15:30:04.526Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:30:04.527Z] Start time: 5/4/2025, 9:00:04 PM
+[2025-05-04T15:30:04.527Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:30:04.528Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:30:04.528Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:30:04.529Z] Max buffer size: 50MB
+[2025-05-04T15:30:04.529Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:30:04.539Z] Scheduler started. Next run scheduled for: Mon May 05 2025 20:51:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:30:04.539Z] Script will run daily at 20:51
+[2025-05-04T15:30:06.701Z] Scheduler stopping...
+[2025-05-04T15:30:18.813Z] Scheduler set to run DAILY at 21:01
+[2025-05-04T15:30:18.816Z] Running initial analytics update on startup...
+[2025-05-04T15:30:18.817Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:30:18.818Z] Start time: 5/4/2025, 9:00:18 PM
+[2025-05-04T15:30:18.818Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:30:18.819Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:30:18.819Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:30:18.819Z] Max buffer size: 50MB
+[2025-05-04T15:30:18.819Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:30:18.827Z] Scheduler started. Next run scheduled for: Sun May 04 2025 21:01:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:30:18.828Z] Script will run daily at 21:01
+[2025-05-04T15:31:00.013Z] Running scheduled job at 5/4/2025, 9:01:00 PM
+[2025-05-04T15:31:00.014Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:31:00.015Z] Start time: 5/4/2025, 9:01:00 PM
+[2025-05-04T15:31:00.015Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:31:00.015Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:31:00.016Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:31:00.016Z] Max buffer size: 50MB
+[2025-05-04T15:31:00.016Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:39:25.857Z] Scheduler stopping...
+[2025-05-04T15:40:28.073Z] Scheduler set to run DAILY at 21:01
+[2025-05-04T15:40:28.080Z] Running initial analytics update on startup...
+[2025-05-04T15:40:28.081Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:40:28.082Z] Start time: 5/4/2025, 9:10:28 PM
+[2025-05-04T15:40:28.083Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:40:28.084Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:40:28.085Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:40:28.086Z] Max buffer size: 50MB
+[2025-05-04T15:40:28.087Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:40:28.104Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:01:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:40:28.105Z] Script will run daily at 21:01
+[2025-05-04T15:40:29.962Z] Scheduler stopping...
+[2025-05-04T15:40:43.309Z] Scheduler set to run DAILY at 21:11
+[2025-05-04T15:40:43.315Z] Running initial analytics update on startup...
+[2025-05-04T15:40:43.317Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:40:43.318Z] Start time: 5/4/2025, 9:10:43 PM
+[2025-05-04T15:40:43.318Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:40:43.319Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:40:43.320Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:40:43.321Z] Max buffer size: 50MB
+[2025-05-04T15:40:43.322Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:40:43.337Z] Scheduler started. Next run scheduled for: Sun May 04 2025 21:11:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:40:43.338Z] Script will run daily at 21:11
+[2025-05-04T15:41:00.024Z] Running scheduled job at 5/4/2025, 9:11:00 PM
+[2025-05-04T15:41:00.025Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:41:00.026Z] Start time: 5/4/2025, 9:11:00 PM
+[2025-05-04T15:41:00.026Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:41:00.027Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:41:00.028Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:41:00.029Z] Max buffer size: 50MB
+[2025-05-04T15:41:00.030Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:42:45.079Z] Scheduler stopping...
+[2025-05-04T15:45:08.631Z] Scheduler set to run DAILY at 21:11
+[2025-05-04T15:45:08.637Z] Running initial analytics update on startup...
+[2025-05-04T15:45:08.637Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:45:08.638Z] Start time: 5/4/2025, 9:15:08 PM
+[2025-05-04T15:45:08.639Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:45:08.640Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:45:08.640Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:45:08.641Z] Max buffer size: 50MB
+[2025-05-04T15:45:08.642Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:45:08.658Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:11:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:45:08.659Z] Script will run daily at 21:11
+[2025-05-04T15:45:10.801Z] Scheduler stopping...
+[2025-05-04T15:45:25.252Z] Scheduler set to run DAILY at 21:16
+[2025-05-04T15:45:25.258Z] Running initial analytics update on startup...
+[2025-05-04T15:45:25.259Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:45:25.261Z] Start time: 5/4/2025, 9:15:25 PM
+[2025-05-04T15:45:25.261Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:45:25.262Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:45:25.263Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:45:25.263Z] Max buffer size: 50MB
+[2025-05-04T15:45:25.264Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:45:25.276Z] Scheduler started. Next run scheduled for: Sun May 04 2025 21:16:00 GMT+0530 (India Standard Time)
+[2025-05-04T15:45:25.277Z] Script will run daily at 21:16
+[2025-05-04T15:45:48.421Z] Script stderr: Error creating sheet "Linkedin" after 5 retries: Invalid requests[0].addSheet: A sheet with the name "Linkedin" already exists. Please enter another name.
+Continuing script execution despite failure in creating sheet "Linkedin"
+Failed to create sheet "Linkedin" after 5 retries. Will try again.
+Error processing group Schbang: groupStartTime is not defined
+Stack trace: ReferenceError: groupStartTime is not defined
+    at processGroupAnalytics (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:509:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async main (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:688:27)
+Error processing group Level SuperMind: groupStartTime is not defined
+Stack trace: ReferenceError: groupStartTime is not defined
+    at processGroupAnalytics (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:509:44)
+    at process.processTicksAndRejections (node:internal/...
+[2025-05-04T15:45:48.422Z] Analytics update completed successfully at 9:15:48 PM
+[2025-05-04T15:45:48.423Z] Total execution time: 26.5 minutes (1592 seconds)
+[2025-05-04T15:45:48.423Z] Output: Starting Group Analytics Processing at 8:49:17 PM
+[TIMING] Process started: 0 minutes (0 seconds)
+Drive credentials already exist at C:\Users\Laptop-1077\Desktop\trial\Automation-excel\drive-credentials.json
+[TIMING] Drive credentials saved: 0 minutes (0 seconds)
+Verifying Google Drive credentials (attempt 1/3)...
+Verifying Google Drive credentials...
+Attempting to get Drive client (attempt 1/5)...
+Successfully parsed credentials file
+Token refreshed successfully
+
+=== DRIVE API: Token refreshed ...
+[2025-05-04T15:46:00.032Z] Running scheduled job at 5/4/2025, 9:16:00 PM
+[2025-05-04T15:46:00.034Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T15:46:00.035Z] Start time: 5/4/2025, 9:16:00 PM
+[2025-05-04T15:46:00.036Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T15:46:00.037Z] Date range: Today only (2025-05-04)
+[2025-05-04T15:46:00.037Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T15:46:00.038Z] Max buffer size: 50MB
+[2025-05-04T15:46:00.039Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T15:47:50.445Z] Script stderr: Error processing group Schbang: groupStartTime is not defined
+Stack trace: ReferenceError: groupStartTime is not defined
+    at processGroupAnalytics (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:504:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async main (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:683:27)
+Error processing group Level SuperMind: groupStartTime is not defined
+Stack trace: ReferenceError: groupStartTime is not defined
+    at processGroupAnalytics (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:504:44)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async main (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js:683:27)
+Error processing group JioHotstar: groupStartTime is not defined
+Stack trace: ReferenceError: groupStartTime is not defined
+    at processGroupAnalytics (C:\Users\Laptop-...
+[2025-05-04T15:47:50.447Z] Analytics update completed successfully at 9:17:50 PM
+[2025-05-04T15:47:50.447Z] Total execution time: 53.3 minutes (3200 seconds)
+[2025-05-04T15:47:50.448Z] Output: Starting Group Analytics Processing at 8:24:31 PM
+[TIMING] Process started: 0 minutes (0 seconds)
+Drive credentials already exist at C:\Users\Laptop-1077\Desktop\trial\Automation-excel\drive-credentials.json
+[TIMING] Drive credentials saved: 0 minutes (0 seconds)
+Verifying Google Drive credentials (attempt 1/3)...
+Verifying Google Drive credentials...
+Attempting to get Drive client (attempt 1/5)...
+Successfully parsed credentials file
+Token refreshed successfully
+
+=== DRIVE API: Token refreshed ...
+[2025-05-04T15:56:30.230Z] Scheduler stopping...
+[2025-05-04T16:01:44.363Z] Scheduler set to run DAILY at 21:16
+[2025-05-04T16:01:44.368Z] Running initial analytics update on startup...
+[2025-05-04T16:01:44.368Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T16:01:44.369Z] Start time: 5/4/2025, 9:31:44 PM
+[2025-05-04T16:01:44.370Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T16:01:44.370Z] Date range: Today only (2025-05-04)
+[2025-05-04T16:01:44.371Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T16:01:44.371Z] Max buffer size: 50MB
+[2025-05-04T16:01:44.372Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T16:01:44.390Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:16:00 GMT+0530 (India Standard Time)
+[2025-05-04T16:01:44.390Z] Script will run daily at 21:16
+[2025-05-04T16:01:57.426Z] Scheduler stopping...
+[2025-05-04T16:01:59.032Z] Scheduler set to run DAILY at 21:32
+[2025-05-04T16:01:59.043Z] Running initial analytics update on startup...
+[2025-05-04T16:01:59.044Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T16:01:59.045Z] Start time: 5/4/2025, 9:31:59 PM
+[2025-05-04T16:01:59.046Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T16:01:59.047Z] Date range: Today only (2025-05-04)
+[2025-05-04T16:01:59.047Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T16:01:59.048Z] Max buffer size: 50MB
+[2025-05-04T16:01:59.048Z] 
+=== EXECUTION STARTING ===
+[2025-05-04T16:01:59.070Z] Scheduler started. Next run scheduled for: Sun May 04 2025 21:32:00 GMT+0530 (India Standard Time)
+[2025-05-04T16:01:59.071Z] Script will run daily at 21:32
+[2025-05-04T16:02:00.026Z] Running scheduled job at 5/4/2025, 9:32:00 PM
+[2025-05-04T16:02:00.027Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-04T16:02:00.028Z] Start time: 5/4/2025, 9:32:00 PM
+[2025-05-04T16:02:00.028Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-04T16:02:00.029Z] Date range: Today only (2025-05-04)
+[2025-05-04T16:02:00.029Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-04T16:02:00.030Z] Max buffer size: 50MB
+[2025-05-04T16:02:00.031Z] 
+=== EXECUTION STARTING ===

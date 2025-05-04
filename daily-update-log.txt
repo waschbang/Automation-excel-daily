@@ -1,0 +1,55 @@
+[2025-05-04T12:04:46.115Z] ==================================================
+[2025-05-04T12:04:46.119Z] Analytics scheduler started
+[2025-05-04T12:04:46.119Z] Script will run daily at 17:40
+[2025-05-04T12:04:46.120Z] Next scheduled run: Sun May 04 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:04:46.120Z] ==================================================
+[2025-05-04T12:10:00.015Z] Running scheduled analytics update at 5/4/2025, 5:40:00 PM
+[2025-05-04T12:10:00.017Z] Starting analytics update...
+[2025-05-04T12:10:00.017Z] Running update for data through 5/4/2025
+[2025-05-04T12:15:20.277Z] Scheduler stopping due to user request
+[2025-05-04T12:22:36.644Z] ==================================================
+[2025-05-04T12:22:36.647Z] Analytics scheduler started
+[2025-05-04T12:22:36.648Z] Script will run daily at 17:40
+[2025-05-04T12:22:36.648Z] Next scheduled run: Mon May 05 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:22:36.649Z] ==================================================
+[2025-05-04T12:23:46.759Z] Scheduler stopping due to user request
+[2025-05-04T12:25:52.245Z] ==================================================
+[2025-05-04T12:25:52.248Z] Analytics scheduler started
+[2025-05-04T12:25:52.249Z] Script will run daily at 17:40
+[2025-05-04T12:25:52.249Z] Next scheduled run: Mon May 05 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:25:52.250Z] Scheduled time 17:40 has already passed for today
+[2025-05-04T12:25:52.250Z] Running analytics update immediately...
+[2025-05-04T12:25:52.250Z] Starting analytics update...
+[2025-05-04T12:25:52.251Z] Running update for data through 5/4/2025
+[2025-05-04T12:25:52.260Z] ==================================================
+[2025-05-04T12:26:05.440Z] Scheduler stopping due to user request
+[2025-05-04T12:26:32.260Z] ==================================================
+[2025-05-04T12:26:32.264Z] Analytics scheduler started
+[2025-05-04T12:26:32.264Z] Script will run daily at 17:40
+[2025-05-04T12:26:32.265Z] Next scheduled run: Mon May 05 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:26:32.265Z] Scheduled time 17:40 has already passed for today
+[2025-05-04T12:26:32.266Z] Running analytics update immediately...
+[2025-05-04T12:26:32.266Z] Starting analytics update...
+[2025-05-04T12:26:32.267Z] Running update for data through 5/4/2025
+[2025-05-04T12:26:32.275Z] ==================================================
+[2025-05-04T12:27:14.371Z] Scheduler stopping due to user request
+[2025-05-04T12:27:15.798Z] ==================================================
+[2025-05-04T12:27:15.802Z] Analytics scheduler started
+[2025-05-04T12:27:15.803Z] Script will run daily at 17:40
+[2025-05-04T12:27:15.803Z] Next scheduled run: Mon May 05 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:27:15.804Z] Scheduled time 17:40 has already passed for today
+[2025-05-04T12:27:15.804Z] Running analytics update immediately...
+[2025-05-04T12:27:15.805Z] Starting analytics update...
+[2025-05-04T12:27:15.805Z] Running update for data through 5/4/2025
+[2025-05-04T12:27:15.813Z] ==================================================
+[2025-05-04T12:27:24.365Z] Scheduler stopping due to user request
+[2025-05-04T12:28:34.416Z] ==================================================
+[2025-05-04T12:28:34.419Z] Analytics scheduler started
+[2025-05-04T12:28:34.420Z] Script will run daily at 17:40
+[2025-05-04T12:28:34.420Z] Next scheduled run: Mon May 05 2025 17:40:00 GMT+0530 (India Standard Time)
+[2025-05-04T12:28:34.420Z] Scheduled time 17:40 has already passed for today
+[2025-05-04T12:28:34.421Z] Running analytics update immediately...
+[2025-05-04T12:28:34.421Z] Starting analytics update...
+[2025-05-04T12:28:34.422Z] Running update for data through 5/4/2025
+[2025-05-04T12:28:34.430Z] ==================================================
+[2025-05-04T12:28:50.172Z] Scheduler stopping due to user request

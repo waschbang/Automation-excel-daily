@@ -16,6 +16,7 @@ const HEADERS = [
   'Profile Name',
   'Network ID',
   'Profile ID',
+  'Added On',
   'Net Follower Growth',
   'New Followers Gained',
   'Followers Lost',
@@ -97,12 +98,25 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       : 0;
 
     // Map the data in the correct order according to the sheet headers
+    // Get current timestamp for the 'Added On' column - use ISO format with local time
+    const now = new Date();
+    const currentTimestamp = now.toLocaleString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+    
     const row = [
       date,                                    // Date
       profileData.network_type,                // Network Type
       profileData.name,                        // Profile Name
       profileData.network_id,                  // Network ID
       profileData.customer_profile_id,         // Profile ID
+      currentTimestamp,                        // Added On
       safeNumber(metrics["net_follower_growth"]),     // Net Follower Growth
       safeNumber(metrics["followers_gained"]),        // New Followers Gained
       safeNumber(metrics["followers_lost"]),          // Followers Lost
