@@ -163,26 +163,51 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
     console.log(`Found ${profiles.length} profiles in this group`);
     
     // Get Google Drive client
-    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
+    const { drive, sheets, auth, refreshAuth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
     if (!drive || !sheets || !auth) {
       throw new Error('Failed to authenticate with Google Drive API');
     }
     
-    // Check if a spreadsheet for this group already exists
-    const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${new Date().toISOString().split('T')[0]}`;
+    // Refresh authentication token before critical operations
+    try {
+      await refreshAuth();
+      console.log('Authentication refreshed before processing group analytics');
+    } catch (refreshError) {
+      console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
+      console.warn('Proceeding with existing token...');
+    }
     
-    // First check if the spreadsheet already exists in the folder
-    let spreadsheetId = await driveUtils.findExistingSpreadsheet(drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+    // Format current date and time for the spreadsheet title
+    const now = new Date();
+    const formattedDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); // HH:MM format
     
-    // If the spreadsheet doesn't exist, create a new one
-    if (!spreadsheetId) {
+    // Create base name pattern (without date/time) for searching existing spreadsheets
+    const baseNamePattern = `Sprout Analytics - ${groupName}`;
+    
+    // Full title with last updated time
+    const spreadsheetTitle = `${baseNamePattern} - Last Updated ${formattedDate} ${formattedTime}`;
+    
+    // First check if a spreadsheet for this group already exists by pattern matching
+    const existingSpreadsheet = await driveUtils.findSpreadsheetByPattern(drive, baseNamePattern, DRIVE_FOLDER_ID);
+    
+    let spreadsheetId;
+    
+    if (existingSpreadsheet) {
+      // Use the existing spreadsheet but update its title to reflect the new update time
+      spreadsheetId = existingSpreadsheet.id;
+      console.log(`Found existing spreadsheet: "${existingSpreadsheet.name}" (${spreadsheetId})`);
+      console.log(`Updating title to: "${spreadsheetTitle}"`);
+      
+      // Update the spreadsheet title
+      await driveUtils.updateSpreadsheetTitle(drive, spreadsheetId, spreadsheetTitle);
+    } else {
+      // No existing spreadsheet found, create a new one
       console.log(`No existing spreadsheet found. Creating a new one: "${spreadsheetTitle}"`);
-      spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+      spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID, refreshAuth);
       if (!spreadsheetId) {
         throw new Error(`Failed to create spreadsheet for group ${groupName}`);
       }
-    } else {
-      console.log(`Using existing spreadsheet: "${spreadsheetTitle}" (${spreadsheetId})`);
     }
     
     // Group profiles by network type
@@ -204,7 +229,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
     for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
       if (networkProfiles.length > 0) {
         const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-        await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
+        await driveUtils.createSheet(sheets, spreadsheetId, sheetName, refreshAuth);
         createdSheets.push(sheetName);
         
         // Set up headers

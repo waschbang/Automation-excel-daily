@@ -17,6 +17,13 @@ const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/drive');
 const groupUtils = require('./utils/groups');
 
+/**
+ * Sleep for a specified duration
+ * @param {number} ms - Milliseconds to sleep
+ * @returns {Promise<void>}
+ */
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Import platform modules
 const instagram = require('./platforms/instagram');
 const youtube = require('./platforms/youtube');
@@ -36,13 +43,13 @@ const DRIVE_CREDENTIALS_PATH = path.join(__dirname, 'drive-credentials.json');
 const FOLDER_CONFIGS = [
   {
     folderId: '1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r',
-    startDate: '2025-01-01',
+    startDate: '2025-03-01',
     endDate: '2025-05-01',
     description: 'Q1 2025'
   },
   {
     folderId: '1OA82RSaq0On_ERovDsZYUqeoMByyWruP',
-    startDate: '2025-01-01',
+    startDate: '2025-03-01',
     endDate: '2025-05-01',
     description: 'Q4 2024'
   }
@@ -173,9 +180,18 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
     console.log(`Found ${profiles.length} profiles in this group`);
     
     // Get Google Drive client
-    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
+    const { drive, sheets, auth, refreshAuth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
     if (!drive || !sheets || !auth) {
       throw new Error('Failed to authenticate with Google Drive API');
+    }
+    
+    // Refresh authentication token before critical operations
+    try {
+      await refreshAuth();
+      console.log('Authentication refreshed before processing group analytics');
+    } catch (refreshError) {
+      console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
+      console.warn('Proceeding with existing token...');
     }
     
     // Create spreadsheets in all specified folders with their respective date ranges
@@ -185,13 +201,39 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       const { folderId, startDate, endDate, description } = folderConfig;
       console.log(`Creating spreadsheet in folder: ${folderId} (${description}: ${startDate} to ${endDate})`);
       
-      // Create a new spreadsheet for this group in this folder
-      const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${description} - ${new Date().toISOString().split('T')[0]}`;
-      const spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, folderId);
+      // Format current date and time for the spreadsheet title
+      const now = new Date();
+      const formattedDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+      const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }); // HH:MM format
       
-      if (!spreadsheetId) {
-        console.error(`Failed to create spreadsheet for group ${groupName} in folder ${folderId}`);
-        continue; // Skip to next folder if this one fails
+      // Create base name pattern (without date/time) for searching existing spreadsheets
+      const baseNamePattern = `Sprout Analytics - ${groupName} - ${description}`;
+      
+      // Full title with last updated time
+      const spreadsheetTitle = `${baseNamePattern} - Last Updated ${formattedDate} ${formattedTime}`;
+      
+      // First check if a spreadsheet for this group already exists by pattern matching
+      const existingSpreadsheet = await driveUtils.findSpreadsheetByPattern(drive, baseNamePattern, folderId);
+      
+      let spreadsheetId;
+      
+      if (existingSpreadsheet) {
+        // Use the existing spreadsheet but update its title to reflect the new update time
+        spreadsheetId = existingSpreadsheet.id;
+        console.log(`Found existing spreadsheet: "${existingSpreadsheet.name}" (${spreadsheetId})`);
+        console.log(`Updating title to: "${spreadsheetTitle}"`);
+        
+        // Update the spreadsheet title
+        await driveUtils.updateSpreadsheetTitle(drive, spreadsheetId, spreadsheetTitle);
+      } else {
+        // No existing spreadsheet found, create a new one
+        console.log(`No existing spreadsheet found. Creating a new one: "${spreadsheetTitle}"`);
+        spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, folderId, refreshAuth);
+        
+        if (!spreadsheetId) {
+          console.error(`Failed to create spreadsheet for group ${groupName} in folder ${folderId}`);
+          continue; // Skip to next folder if this one fails
+        }
       }
       
       // Group profiles by network type
@@ -213,7 +255,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
         if (networkProfiles.length > 0) {
           const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-          await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
+          await driveUtils.createSheet(sheets, spreadsheetId, sheetName, refreshAuth);
           createdSheets.push(sheetName);
           
           // Set up headers
@@ -422,8 +464,8 @@ const main = async () => {
     console.log('\n=== Processing Each Group ===');
     const allResults = [];
     
-    // Import sleep function from drive utils
-    const { sleep } = require('./utils/drive');
+    // Use the sleep function defined at the top of this file
+    // No need to import it again
     
     // Process groups with a delay between each to avoid hitting API quotas
     for (const [groupId, groupData] of Object.entries(profilesByGroup)) {
