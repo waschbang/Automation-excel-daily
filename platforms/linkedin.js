@@ -12,28 +12,28 @@ const SHEET_NAME = 'Linkedin';
 // Sheet headers
 const HEADERS = [
   'Date',
-  'Network',
+  'Network Type',
   'Profile Name',
   'Network ID',
   'Profile ID',
   'Net Follower Growth',
-  'Followers Gained',
+  'New Followers Gained',
   'Followers Lost',
-  'Impressions Organic',
-  'Impressions Paid',
-  'Reactions',
-  'Comments',
-  'Shares',
-  'Post Link Clicks',
-  'Post Content Clicks',
-  'Posts Sent Count',
-  'Clicks',
-  'Impressions',
-  'Followers Count',
-  'Engagements',
-  'Engagement Rate (per Impression)',
-  'Engagement Rate (per Follower)',
-  'Click-Through Rate'
+  'Organic Impressions',
+  'Paid Impressions',
+  'Total Reactions',
+  'Total Comments',
+  'Total Shares',
+  'Total Link Clicks',
+  'Total Content Clicks',
+  'Posts Published Count',
+  'Total Clicks',
+  'Total Impressions',
+  'Lifetime Followers Count',
+  'Total Engagement Actions',
+  'Engagement Rate % (per Impression)',
+  'Engagement Rate % (per Follower)',
+  'Click-Through Rate %'
 ];
 
 /**
@@ -69,7 +69,7 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     
     const date = new Date(reportingPeriod).toISOString().split('T')[0];
     
-    // Calculate total engagements
+    // Calculate total engagement actions
     const engagements = 
       parseFloat(metrics["reactions"] || 0) + 
       parseFloat(metrics["comments_count"] || 0) + 
@@ -77,18 +77,21 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       parseFloat(metrics["post_link_clicks"] || 0) + 
       parseFloat(metrics["post_content_clicks"] || 0);
     
+    // Get total impressions and lifetime followers count
     const impressions = parseFloat(metrics["impressions"] || 0);
     const followersCount = parseFloat(metrics["lifetime_snapshot.followers_count"] || 0);
     
-    // Calculate engagement rates
+    // Calculate engagement rate as percentage of impressions
     const engagementRatePerImpression = impressions > 0 
       ? parseFloat(((engagements / impressions) * 100).toFixed(2))
       : 0;
       
+    // Calculate engagement rate as percentage of followers
     const engagementRatePerFollower = followersCount > 0 
       ? parseFloat(((engagements / followersCount) * 100).toFixed(2))
       : 0;
       
+    // Calculate click-through rate as percentage of impressions
     const clickThroughRate = impressions > 0
       ? parseFloat(((parseFloat(metrics["post_link_clicks"] || 0) + parseFloat(metrics["post_content_clicks"] || 0)) / impressions * 100).toFixed(2))
       : 0;
@@ -96,28 +99,28 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     // Map the data in the correct order according to the sheet headers
     const row = [
       date,                                    // Date
-      profileData.network_type,                // Network
+      profileData.network_type,                // Network Type
       profileData.name,                        // Profile Name
       profileData.network_id,                  // Network ID
       profileData.customer_profile_id,         // Profile ID
-      parseFloat(metrics["net_follower_growth"] || 0), // Net Follower Growth
-      parseFloat(metrics["followers_gained"] || 0),    // Followers Gained
-      parseFloat(metrics["followers_lost"] || 0),      // Followers Lost
-      parseFloat(metrics["impressions_organic"] || 0), // Impressions Organic
-      parseFloat(metrics["impressions_paid"] || 0),    // Impressions Paid
-      parseFloat(metrics["reactions"] || 0),           // Reactions
-      parseFloat(metrics["comments_count"] || 0),      // Comments
-      parseFloat(metrics["shares_count"] || 0),        // Shares
-      parseFloat(metrics["post_link_clicks"] || 0),    // Post Link Clicks
-      parseFloat(metrics["post_content_clicks"] || 0), // Post Content Clicks
-      parseFloat(metrics["posts_sent_count"] || 0),    // Posts Sent Count
-      parseFloat(metrics["post_link_clicks"] || 0) + parseFloat(metrics["post_content_clicks"] || 0), // Clicks
-      impressions,                             // Impressions
-      followersCount,                          // Followers Count
-      engagements,                             // Total Engagements
-      engagementRatePerImpression,             // Engagement Rate (per Impression)
-      engagementRatePerFollower,               // Engagement Rate (per Follower)
-      clickThroughRate                         // Click-Through Rate
+      safeNumber(metrics["net_follower_growth"]),     // Net Follower Growth
+      safeNumber(metrics["followers_gained"]),        // New Followers Gained
+      safeNumber(metrics["followers_lost"]),          // Followers Lost
+      safeNumber(metrics["impressions_organic"]),     // Organic Impressions
+      safeNumber(metrics["impressions_paid"]),        // Paid Impressions
+      safeNumber(metrics["reactions"]),               // Total Reactions
+      safeNumber(metrics["comments_count"]),          // Total Comments
+      safeNumber(metrics["shares_count"]),            // Total Shares
+      safeNumber(metrics["post_link_clicks"]),        // Total Link Clicks
+      safeNumber(metrics["post_content_clicks"]),     // Total Content Clicks
+      safeNumber(metrics["posts_sent_count"]),        // Posts Published Count
+      safeNumber(metrics["post_link_clicks"]) + safeNumber(metrics["post_content_clicks"]), // Total Clicks
+      safeNumber(metrics["impressions"]),             // Total Impressions
+      safeNumber(metrics["lifetime_snapshot.followers_count"]), // Lifetime Followers Count
+      engagements,                             // Total Engagement Actions
+      engagementRatePerImpression,             // Engagement Rate % (per Impression)
+      engagementRatePerFollower,               // Engagement Rate % (per Follower)
+      clickThroughRate                         // Click-Through Rate %
     ];
 
     console.log('Formatted LinkedIn row:', row);

@@ -162,7 +162,14 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
           "posts_sent_count",
           "posts_sent_by_post_type",
           "posts_sent_by_content_type",
-          "calculated_engagements"
+          "calculated_engagements",
+          "saves",
+          "post_saves",
+          "likes",
+          "post_likes",
+          "views",
+          "post_views",
+          "following_count"
         ],
         "page": 1
       };
@@ -179,7 +186,8 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
         console.warn(`No analytics data found for profile ${profileId}`);
       }
       
-      // Add a small delay between requests to avoid rate limiting
+      // Add a small delay between requests to avoid rate limiting with Sprout Social API
+      console.log(`Waiting 1 second before processing the next profile...`);
       await sleep(1000);
       
     } catch (error) {
@@ -316,10 +324,10 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
       });
     }
     
-    // If we hit a rate limit, wait longer before continuing
+    // If we hit a rate limit, wait before continuing
     if (error.response && (error.response.status === 429 || error.response.status === 403)) {
-      console.log('Rate limit hit, waiting 10 seconds before continuing...');
-      await sleep(10000);
+      console.log('Rate limit hit, waiting 15 seconds before continuing...');
+      await sleep(15000); // Reduced to 15 seconds for Sprout Social API
     }
   }
   

@@ -168,11 +168,21 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       throw new Error('Failed to authenticate with Google Drive API');
     }
     
-    // Create a new spreadsheet for this group
+    // Check if a spreadsheet for this group already exists
     const spreadsheetTitle = `Sprout Analytics - ${groupName} - ${new Date().toISOString().split('T')[0]}`;
-    const spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+    
+    // First check if the spreadsheet already exists in the folder
+    let spreadsheetId = await driveUtils.findExistingSpreadsheet(drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+    
+    // If the spreadsheet doesn't exist, create a new one
     if (!spreadsheetId) {
-      throw new Error(`Failed to create spreadsheet for group ${groupName}`);
+      console.log(`No existing spreadsheet found. Creating a new one: "${spreadsheetTitle}"`);
+      spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, DRIVE_FOLDER_ID);
+      if (!spreadsheetId) {
+        throw new Error(`Failed to create spreadsheet for group ${groupName}`);
+      }
+    } else {
+      console.log(`Using existing spreadsheet: "${spreadsheetTitle}" (${spreadsheetId})`);
     }
     
     // Group profiles by network type
@@ -394,16 +404,16 @@ const main = async () => {
             });
           }
           
-          // Add a delay after processing each group to avoid hitting API quotas
-          // Wait 30 seconds between groups
-          console.log(`Waiting 30 seconds before processing the next group to avoid API quota limits...`);
-          await sleep(30000);
+          // Add a longer delay after processing each group to avoid hitting API quotas
+          // Wait 60 seconds between groups
+          console.log(`Waiting 60 seconds before processing the next group to avoid API quota limits...`);
+          await sleep(60000);
         } catch (error) {
           console.error(`Error processing group ${groupName}: ${error.message}`);
           
-          // Even if there's an error, wait before trying the next group
-          console.log(`Waiting 10 seconds before continuing to the next group...`);
-          await sleep(10000);
+          // Even if there's an error, wait longer before trying the next group
+          console.log(`Waiting 30 seconds before continuing to the next group...`);
+          await sleep(30000);
         }
       } else {
         console.log(`Skipping group ${groupName} (${groupId}) - no profiles found`);

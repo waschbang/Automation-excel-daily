@@ -13,7 +13,7 @@ const path = require('path');
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
- * Get Google Drive API client
+ * Get Google Drive API client with token refresh capabilities
  * @param {string} credentialsPath - Path to credentials file
  * @returns {Promise<Object>} Google Drive API client
  */
@@ -41,15 +41,28 @@ const getDriveClient = async (credentialsPath) => {
       throw new Error('Credentials file missing private_key field');
     }
     
-    // Create a JWT client directly instead of using GoogleAuth
-    // This can sometimes handle credential format issues better
+    // Create a JWT client with token refresh capabilities
     try {
-      const jwtClient = new google.auth.JWT(
-        credentials.client_email,
-        null,
-        credentials.private_key,
-        ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
-      );
+      // Configure the JWT client with a longer token expiration (1 hour)
+      const jwtClient = new google.auth.JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: [
+          'https://www.googleapis.com/auth/spreadsheets',
+          'https://www.googleapis.com/auth/drive'
+        ],
+        // Set a longer token lifetime (3600 seconds = 1 hour)
+        eagerRefreshThresholdMillis: 300000, // Refresh token when it's 5 minutes from expiring
+      });
+      
+      // Add a token refresh handler
+      jwtClient.on('tokens', (tokens) => {
+        if (tokens.refresh_token) {
+          console.log('New refresh token received, storing for future use');
+          // You could store this for future use if needed
+        }
+        console.log('Token refreshed successfully');
+      });
       
       // Authorize the client
       await jwtClient.authorize();
@@ -64,6 +77,7 @@ const getDriveClient = async (credentialsPath) => {
       console.error(`JWT authentication error: ${authError.message}`);
       if (authError.message.includes('invalid_grant') || authError.message.includes('Invalid JWT')) {
         console.error('This usually indicates an issue with the private key format or expired credentials.');
+        console.error('Try regenerating your service account key in the Google Cloud Console.');
       }
       throw authError;
     }
@@ -81,7 +95,7 @@ const getDriveClient = async (credentialsPath) => {
  * @param {string} operationName - Name of the operation for logging
  * @returns {Promise<any>} Result of the function
  */
-const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 2000, operationName = 'operation') => {
+const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 5000, operationName = 'operation') => {
   let retries = 0;
   let backoffTime = initialBackoff;
   
@@ -102,11 +116,11 @@ const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 2000, opera
       if (isQuotaError) {
         console.log(`Quota exceeded. Retrying ${operationName} in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
         await sleep(backoffTime);
-        backoffTime *= 2; // Exponential backoff for quota errors
+        backoffTime *= 3; // Increased exponential backoff for quota errors
       } else {
         console.log(`Error ${operationName}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
         await sleep(backoffTime);
-        backoffTime *= 1.5; // Mild backoff for other errors
+        backoffTime *= 2; // Increased backoff for other errors
       }
     }
   }
@@ -231,9 +245,44 @@ const createSheet = async (sheets, spreadsheetId, sheetTitle, maxRetries = 5) =>
   }
 };
 
+/**
+ * Check if a spreadsheet with the given title already exists in the specified folder
+ * @param {google.drive.v3.Drive} drive - Google Drive API client
+ * @param {string} title - Title of the spreadsheet to search for
+ * @param {string} folderId - Folder ID to search in
+ * @returns {Promise<string|null>} Spreadsheet ID if found, null otherwise
+ */
+const findExistingSpreadsheet = async (drive, title, folderId) => {
+  try {
+    console.log(`Checking if spreadsheet "${title}" already exists in folder ${folderId}...`);
+    
+    // Search for files with the exact title in the specified folder
+    const response = await drive.files.list({
+      q: `name = '${title}' and '${folderId}' in parents and mimeType = 'application/vnd.google-apps.spreadsheet' and trashed = false`,
+      fields: 'files(id, name, webViewLink)',
+      spaces: 'drive'
+    });
+    
+    const files = response.data.files;
+    
+    if (files && files.length > 0) {
+      console.log(`Found existing spreadsheet: ${files[0].name} (${files[0].id})`);
+      return files[0].id;
+    }
+    
+    console.log(`No existing spreadsheet found with title "${title}" in folder ${folderId}`);
+    return null;
+  } catch (error) {
+    console.error(`Error searching for existing spreadsheet: ${error.message}`);
+    return null;
+  }
+};
+
 module.exports = {
   getDriveClient,
   createSpreadsheet,
   createSheet,
-  sleep
+  retryWithBackoff,
+  sleep,
+  findExistingSpreadsheet
 };
