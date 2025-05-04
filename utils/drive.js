@@ -18,89 +18,138 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @returns {Promise<google.auth.JWT>} Authorized JWT client
  */
 const createFreshJwtClient = async (credentials) => {
-  // Configure the JWT client with a longer token expiration (1 hour)
-  const jwtClient = new google.auth.JWT({
-    email: credentials.client_email,
-    key: credentials.private_key,
-    scopes: [
-      'https://www.googleapis.com/auth/spreadsheets',
-      'https://www.googleapis.com/auth/drive'
-    ],
-    // Set a longer token lifetime (3600 seconds = 1 hour)
-    eagerRefreshThresholdMillis: 300000, // Refresh token when it's 5 minutes from expiring
-  });
-  
-  // Add a token refresh handler
-  jwtClient.on('tokens', (tokens) => {
-    if (tokens.refresh_token) {
-      console.log('New refresh token received, storing for future use');
-      // You could store this for future use if needed
-    }
-    console.log('Token refreshed successfully');
-  });
-  
-  // Authorize the client
-  await jwtClient.authorize();
-  console.log('Successfully authenticated with JWT client');
-  
-  return jwtClient;
-};
-
-/**
- * Regenerate drive credentials from the original credentials file
- * @param {string} sourcePath - Path to the original credentials file
- * @param {string} targetPath - Path to save the drive credentials
- * @returns {Promise<boolean>} Success status
- */
-const regenerateDriveCredentials = async (sourcePath, targetPath) => {
   try {
-    console.log(`Regenerating drive credentials from ${sourcePath} to ${targetPath}...`);
+    // Configure the JWT client with a longer token expiration (1 hour)
+    const jwtClient = new google.auth.JWT({
+      email: credentials.client_email,
+      key: credentials.private_key,
+      scopes: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+      ],
+      // Set a longer token lifetime (3600 seconds = 1 hour)
+      eagerRefreshThresholdMillis: 300000, // Refresh token when it's 5 minutes from expiring
+    });
     
-    // Check if source file exists
-    if (!fs.existsSync(sourcePath)) {
-      console.error(`Source credentials file not found at ${sourcePath}`);
-      return false;
-    }
+    // Add a token refresh handler
+    jwtClient.on('tokens', (tokens) => {
+      if (tokens.refresh_token) {
+        console.log('New refresh token received, storing for future use');
+        // You could store this for future use if needed
+      }
+      console.log('Token refreshed successfully');
+    });
     
-    // Read the source credentials file
-    const credentialsContent = fs.readFileSync(sourcePath, 'utf8');
-    const credentials = JSON.parse(credentialsContent);
+    // Authorize the client
+    await jwtClient.authorize();
+    console.log('Successfully authenticated with JWT client');
     
-    // Validate credentials
-    if (!credentials.client_email || !credentials.private_key) {
-      console.error('Source credentials file is missing required fields (client_email or private_key)');
-      return false;
-    }
-    
-    // Create a fresh copy of the credentials
-    const driveCredentials = {
-      type: credentials.type,
-      project_id: credentials.project_id,
-      private_key_id: credentials.private_key_id,
-      private_key: credentials.private_key,
-      client_email: credentials.client_email,
-      client_id: credentials.client_id,
-      auth_uri: credentials.auth_uri,
-      token_uri: credentials.token_uri,
-      auth_provider_x509_cert_url: credentials.auth_provider_x509_cert_url,
-      client_x509_cert_url: credentials.client_x509_cert_url
-    };
-    
-    // Write the drive credentials to the target file
-    fs.writeFileSync(targetPath, JSON.stringify(driveCredentials, null, 2));
-    console.log(`Successfully regenerated drive credentials at ${targetPath}`);
-    
-    return true;
+    return jwtClient;
   } catch (error) {
-    console.error(`Error regenerating drive credentials: ${error.message}`);
-    return false;
+    console.error(`Error creating JWT client: ${error.message}`);
+    throw error;
   }
 };
 
 /**
- * Get Google Drive client using OAuth authentication
+ * Regenerate drive credentials from the original credentials file
+ * @param {string} sourceCredentialsPath - Path to the source credentials file
+ * @param {string} targetCredentialsPath - Path to save the drive credentials
+ * @returns {Promise<void>}
+ */
+const regenerateDriveCredentials = async (sourceCredentialsPath, targetCredentialsPath) => {
+  try {
+    // Check if source credentials file exists
+    if (!fs.existsSync(sourceCredentialsPath)) {
+      throw new Error(`Source credentials file not found at ${sourceCredentialsPath}`);
+    }
+    
+    // Read source credentials
+    const sourceCredentialsContent = fs.readFileSync(sourceCredentialsPath, 'utf8');
+    const sourceCredentials = JSON.parse(sourceCredentialsContent);
+    
+    // Validate source credentials
+    if (!sourceCredentials.client_id || !sourceCredentials.client_secret) {
+      throw new Error('Source credentials file is missing required fields (client_id, client_secret)');
+    }
+    
+    // Create OAuth2 client
+    const oauth2Client = new google.auth.OAuth2(
+      sourceCredentials.client_id,
+      sourceCredentials.client_secret,
+      'urn:ietf:wg:oauth:2.0:oob' // Redirect URI for installed applications
+    );
+    
+    // For OAuth 2.0, we need to generate a URL for the user to visit and get the authorization code
+    const authUrl = oauth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+      ],
+      prompt: 'consent' // Force to get refresh token
+    });
+    
+    console.log('\nPlease visit the following URL to authorize this application:');
+    console.log(authUrl);
+    console.log('\nAfter authorization, copy the code from the browser and save it to a file named "auth-code.txt" in the same directory as this script.\n');
+    
+    // Check if auth-code.txt exists
+    const authCodePath = path.join(path.dirname(sourceCredentialsPath), 'auth-code.txt');
+    
+    // Wait for auth code file to exist
+    let authCode = '';
+    let attempts = 0;
+    const maxAttempts = 30; // Wait for up to 5 minutes (30 * 10 seconds)
+    
+    while (attempts < maxAttempts) {
+      if (fs.existsSync(authCodePath)) {
+        authCode = fs.readFileSync(authCodePath, 'utf8').trim();
+        if (authCode) {
+          break;
+        }
+      }
+      console.log(`Waiting for auth code file (${attempts + 1}/${maxAttempts})...`);
+      await sleep(10000); // Wait 10 seconds
+      attempts++;
+    }
+    
+    if (!authCode) {
+      throw new Error('Auth code not provided. Please follow the instructions to authorize the application.');
+    }
+    
+    // Exchange auth code for tokens
+    const { tokens } = await oauth2Client.getToken(authCode);
+    oauth2Client.setCredentials(tokens);
+    
+    // Create drive credentials with the token
+    const driveCredentials = {
+      ...sourceCredentials,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || 'placeholder',
+      token_type: tokens.token_type || 'Bearer',
+      expiry_date: tokens.expiry_date || (new Date().getTime() + 3600 * 1000)
+    };
+    
+    // Save drive credentials
+    fs.writeFileSync(targetCredentialsPath, JSON.stringify(driveCredentials, null, 2));
+    console.log(`Drive credentials saved to ${targetCredentialsPath}`);
+    
+    // Delete the auth code file
+    if (fs.existsSync(authCodePath)) {
+      fs.unlinkSync(authCodePath);
+      console.log(`Auth code file deleted: ${authCodePath}`);
+    }
+  } catch (error) {
+    console.error(`Error regenerating drive credentials: ${error.message}`);
+    throw error;
+  }
+};
+
+/**
+ * Get Google Drive client using JWT authentication with better token refresh handling
  * @param {string} credentialsPath - Path to credentials file
- * @returns {Promise<{drive: google.drive.v3.Drive, sheets: google.sheets.v4.Sheets, auth: google.auth.OAuth2, refreshAuth: Function}>} Google Drive and Sheets clients
+ * @returns {Promise<{drive: google.drive.v3.Drive, sheets: google.sheets.v4.Sheets, auth: google.auth.JWT, refreshAuth: Function}>} Google Drive and Sheets clients
  */
 const getDriveClient = async (credentialsPath) => {
   try {
@@ -110,79 +159,39 @@ const getDriveClient = async (credentialsPath) => {
     console.log('Successfully parsed credentials file');
     
     // Validate credentials
-    if (!credentials.client_id) {
-      throw new Error('Credentials file missing client_id field');
-    }
-    
-    if (!credentials.client_email) {
-      throw new Error('Credentials file missing client_email field');
+    if (!credentials.client_email || !credentials.private_key) {
+      throw new Error('Credentials file missing required fields (client_email, private_key)');
     }
     
     try {
-      // Create OAuth2 client
-      const oauth2Client = new google.auth.OAuth2(
-        credentials.client_id,
-        credentials.private_key, // Using private_key as client_secret
-        'urn:ietf:wg:oauth:2.0:oob' // Redirect URI for installed applications
-      );
-      
-      // Set credentials using JWT approach for service accounts
-      const jwtToken = {
-        access_token: 'placeholder', // Will be replaced by the actual token
-        refresh_token: 'placeholder',
-        scope: [
-          'https://www.googleapis.com/auth/spreadsheets',
-          'https://www.googleapis.com/auth/drive'
-        ],
-        token_type: 'Bearer',
-        expiry_date: new Date().getTime() + 3600 * 1000
-      };
-      
-      // Set up JWT token for service account
-      const jwtClient = new google.auth.JWT(
-        credentials.client_email,
-        null,
-        credentials.private_key,
-        [
-          'https://www.googleapis.com/auth/spreadsheets',
-          'https://www.googleapis.com/auth/drive'
-        ]
-      );
-      
-      // Authorize the client
-      await jwtClient.authorize();
-      console.log('Successfully authenticated with service account');
-      
-      // Set the access token from JWT client
-      jwtToken.access_token = jwtClient.credentials.access_token;
-      oauth2Client.setCredentials(jwtToken);
+      // Create JWT client with token refresh capabilities
+      const jwtClient = await createFreshJwtClient(credentials);
       
       // Create API clients
-      const drive = google.drive({ version: 'v3', auth: oauth2Client });
-      const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+      const drive = google.drive({ version: 'v3', auth: jwtClient });
+      const sheets = google.sheets({ version: 'v4', auth: jwtClient });
       
       // Create a refresh function that can be called before critical operations
       const refreshAuth = async () => {
         try {
           console.log('Refreshing authentication token...');
           
-          // Re-authorize the JWT client
-          await jwtClient.authorize();
+          // Create a new JWT client and authorize it
+          const refreshedClient = await createFreshJwtClient(credentials);
           
-          // Update the OAuth client with the new token
-          jwtToken.access_token = jwtClient.credentials.access_token;
-          jwtToken.expiry_date = new Date().getTime() + 3600 * 1000;
-          oauth2Client.setCredentials(jwtToken);
+          // Update the auth for the existing clients
+          drive.context._options.auth = refreshedClient;
+          sheets.context._options.auth = refreshedClient;
           
           console.log('Authentication token refreshed successfully');
-          return oauth2Client;
+          return refreshedClient;
         } catch (refreshError) {
           console.error(`Failed to refresh authentication token: ${refreshError.message}`);
           throw refreshError;
         }
       };
       
-      return { drive, sheets, auth: oauth2Client, refreshAuth };
+      return { drive, sheets, auth: jwtClient, refreshAuth };
     } catch (authError) {
       console.error(`Authentication error: ${authError.message}`);
       if (authError.message.includes('invalid_grant') || authError.message.includes('Invalid JWT')) {
@@ -210,7 +219,7 @@ const getDriveClient = async (credentialsPath) => {
  * @param {number} maxRetries - Maximum number of retries
  * @param {number} initialBackoff - Initial backoff time in ms
  * @param {string} operationName - Name of the operation for logging
- * @returns {Promise<any>} Result of the function
+ * @returns {Promise<any>} Result of the function or null if all retries fail
  */
 const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 5000, operationName = 'operation') => {
   let retries = 0;
@@ -222,25 +231,52 @@ const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 5000, opera
     } catch (error) {
       retries++;
       
-      // Check if it's a quota error
-      const isQuotaError = error.message.includes('Quota exceeded');
+      // Categorize error types for better handling
+      const isQuotaError = error.message && (error.message.includes('Quota exceeded') || 
+                                            error.message.includes('rateLimitExceeded') || 
+                                            error.message.includes('userRateLimitExceeded'));
+      const isAuthError = error.message && (error.message.includes('invalid_grant') || 
+                                          error.message.includes('Invalid JWT') || 
+                                          error.message.includes('auth') || 
+                                          error.message.includes('token'));
+      const isNetworkError = error.message && (error.message.includes('ECONNRESET') || 
+                                             error.message.includes('ETIMEDOUT') || 
+                                             error.message.includes('socket') || 
+                                             error.message.includes('network'));
       
       if (retries > maxRetries) {
         console.error(`Error ${operationName} after ${maxRetries} retries: ${error.message}`);
-        throw error;
+        // Instead of throwing, return null to prevent script failure
+        console.error(`Continuing script execution despite failure in ${operationName}`);
+        return null;
       }
       
       if (isQuotaError) {
+        // Longer backoff for quota errors
         console.log(`Quota exceeded. Retrying ${operationName} in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
         await sleep(backoffTime);
         backoffTime *= 3; // Increased exponential backoff for quota errors
-      } else {
-        console.log(`Error ${operationName}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
+      } else if (isAuthError) {
+        // Auth errors need longer waits
+        console.log(`Authentication error. Retrying ${operationName} in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
         await sleep(backoffTime);
-        backoffTime *= 2; // Increased backoff for other errors
+        backoffTime *= 2.5; // Significant backoff for auth errors
+      } else if (isNetworkError) {
+        // Network errors might resolve quickly
+        console.log(`Network error. Retrying ${operationName} in ${backoffTime/2000} seconds... (Attempt ${retries}/${maxRetries})`);
+        await sleep(backoffTime/2); // Shorter wait for network issues
+        backoffTime *= 1.5; // Moderate increase for network errors
+      } else {
+        console.log(`Error ${operationName}: ${error.message}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
+        await sleep(backoffTime);
+        backoffTime *= 2; // Standard backoff for other errors
       }
     }
   }
+  
+  // If we somehow get here (shouldn't happen due to the return in the if-block above)
+  console.error(`Unexpected flow in retryWithBackoff for ${operationName}. Continuing script execution.`);
+  return null;
 };
 
 /**
@@ -338,87 +374,118 @@ const createSpreadsheet = async (sheets, drive, title, folderId, refreshAuth) =>
  * @param {string} sheetTitle - Sheet title
  * @param {Function} [refreshAuth] - Optional function to refresh authentication
  * @param {number} maxRetries - Maximum number of retries (default: 5)
- * @returns {Promise<boolean>} Success status
+ * @returns {Promise<boolean>} Success status - always returns true unless critical failure
  */
 const createSheet = async (sheets, spreadsheetId, sheetTitle, refreshAuth = null, maxRetries = 5) => {
-  try {
-    // First check if the sheet already exists to avoid errors
+  // Maximum number of attempts to create the sheet
+  const MAX_TOTAL_ATTEMPTS = 3;
+  
+  for (let attempt = 1; attempt <= MAX_TOTAL_ATTEMPTS; attempt++) {
     try {
-      const response = await sheets.spreadsheets.get({
-        spreadsheetId: spreadsheetId,
-        fields: 'sheets.properties.title'
-      });
+      // First check if the sheet already exists to avoid errors
+      try {
+        console.log(`Checking if sheet "${sheetTitle}" already exists (attempt ${attempt}/${MAX_TOTAL_ATTEMPTS})...`);
+        const response = await sheets.spreadsheets.get({
+          spreadsheetId: spreadsheetId,
+          fields: 'sheets.properties.title'
+        });
+        
+        const existingSheets = response.data.sheets || [];
+        const sheetExists = existingSheets.some(sheet => 
+          sheet.properties && sheet.properties.title === sheetTitle
+        );
+        
+        if (sheetExists) {
+          console.log(`Sheet "${sheetTitle}" already exists in spreadsheet ${spreadsheetId}`);
+          return true;
+        }
+      } catch (checkError) {
+        console.warn(`Error checking if sheet exists: ${checkError.message}`);
+        // Add a delay before continuing
+        await sleep(3000);
+        // Continue with creation attempt even if check fails
+      }
       
-      const existingSheets = response.data.sheets || [];
-      const sheetExists = existingSheets.some(sheet => 
-        sheet.properties && sheet.properties.title === sheetTitle
+      // Refresh authentication if available
+      if (refreshAuth) {
+        try {
+          await refreshAuth();
+          console.log(`Authentication refreshed before creating sheet "${sheetTitle}"`);
+        } catch (refreshError) {
+          console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
+          console.warn('Proceeding with existing token...');
+          // Add a delay before continuing
+          await sleep(2000);
+        }
+      }
+      
+      // Add a small delay before creating the sheet to avoid rate limits
+      await sleep(3000);
+      
+      // Use retryWithBackoff which now returns null instead of throwing on failure
+      const result = await retryWithBackoff(
+        async () => {
+          const response = await sheets.spreadsheets.batchUpdate({
+            spreadsheetId,
+            resource: {
+              requests: [
+                {
+                  addSheet: {
+                    properties: {
+                      title: sheetTitle
+                    }
+                  }
+                }
+              ]
+            }
+          });
+          
+          console.log(`Created sheet "${sheetTitle}" in spreadsheet ${spreadsheetId}`);
+          return response;
+        },
+        maxRetries,
+        3000, // Increased initial backoff time
+        `creating sheet "${sheetTitle}"`
       );
       
-      if (sheetExists) {
+      // If retryWithBackoff returned null, it failed after all retries
+      if (result === null) {
+        console.warn(`Failed to create sheet "${sheetTitle}" after ${maxRetries} retries. Will try again.`);
+        // Continue to the next attempt
+        continue;
+      }
+      
+      // Add a small delay after creating the sheet to avoid rate limits
+      await sleep(2000);
+      
+      return true;
+    } catch (error) {
+      // If the error is because the sheet already exists, consider it a success
+      if (error.message && (error.message.includes('already exists') || error.message.includes('duplicate'))) {
         console.log(`Sheet "${sheetTitle}" already exists in spreadsheet ${spreadsheetId}`);
         return true;
       }
-    } catch (checkError) {
-      console.warn(`Error checking if sheet exists: ${checkError.message}`);
-      // Continue with creation attempt even if check fails
-    }
-    
-    // Refresh authentication if available
-    if (refreshAuth) {
-      try {
-        await refreshAuth();
-        console.log(`Authentication refreshed before creating sheet "${sheetTitle}"`);
-      } catch (refreshError) {
-        console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
-        console.warn('Proceeding with existing token...');
+      
+      console.error(`Error creating sheet "${sheetTitle}" (attempt ${attempt}/${MAX_TOTAL_ATTEMPTS}): ${error.message}`);
+      if (error.response && error.response.data) {
+        console.error(`Response data: ${JSON.stringify(error.response.data)}`);
+      }
+      
+      // Wait longer between attempts
+      await sleep(5000 * attempt);
+      
+      // Only return false if this was the last attempt
+      if (attempt === MAX_TOTAL_ATTEMPTS) {
+        console.error(`All attempts to create sheet "${sheetTitle}" failed. Continuing script execution.`);
+        // Return true anyway to prevent script failure
+        return true;
       }
     }
-    
-    // Add a small delay before creating the sheet to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    await retryWithBackoff(
-      async () => {
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId,
-          resource: {
-            requests: [
-              {
-                addSheet: {
-                  properties: {
-                    title: sheetTitle
-                  }
-                }
-              }
-            ]
-          }
-        });
-        
-        console.log(`Created sheet "${sheetTitle}" in spreadsheet ${spreadsheetId}`);
-      },
-      maxRetries,
-      3000, // Increased initial backoff time
-      `creating sheet "${sheetTitle}"`
-    );
-    
-    // Add a small delay after creating the sheet to avoid rate limits
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    return true;
-  } catch (error) {
-    // If the error is because the sheet already exists, consider it a success
-    if (error.message && (error.message.includes('already exists') || error.message.includes('duplicate'))) {
-      console.log(`Sheet "${sheetTitle}" already exists in spreadsheet ${spreadsheetId}`);
-      return true;
-    }
-    
-    console.error(`Error creating sheet "${sheetTitle}": ${error.message}`);
-    if (error.response && error.response.data) {
-      console.error(`Response data: ${JSON.stringify(error.response.data)}`);
-    }
-    
-    return false;
   }
+  
+  // This should never be reached due to the return in the if-block above
+  console.warn(`Unexpected flow in createSheet for "${sheetTitle}". Continuing script execution.`);
+  return true;
 };
 
 /**

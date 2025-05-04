@@ -417,22 +417,68 @@ const main = async () => {
   try {
     console.log('Starting Group Analytics Processing');
     
-    // Save Drive credentials
-    saveDriveCredentials();
+    // Save Drive credentials with better error handling
+    try {
+      saveDriveCredentials();
+    } catch (credError) {
+      console.error(`Error saving drive credentials: ${credError.message}`);
+      console.error('Continuing with existing credentials if available...');
+    }
     
-    // Verify Drive credentials before proceeding
-    const credentialsValid = await verifyDriveCredentials();
+    // Verify Drive credentials before proceeding with multiple retries
+    let credentialsValid = false;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Verifying Google Drive credentials (attempt ${attempt}/3)...`);
+        credentialsValid = await verifyDriveCredentials();
+        if (credentialsValid) break;
+        
+        console.error(`Credentials verification failed on attempt ${attempt}/3.`);
+        if (attempt < 3) {
+          console.log('Waiting 5 seconds before retrying...');
+          await sleep(5000);
+        }
+      } catch (verifyError) {
+        console.error(`Error during credentials verification (attempt ${attempt}/3): ${verifyError.message}`);
+        if (attempt < 3) {
+          console.log('Waiting 5 seconds before retrying...');
+          await sleep(5000);
+        }
+      }
+    }
+    
     if (!credentialsValid) {
-      console.error('Google Drive credentials verification failed. Cannot proceed with spreadsheet creation.');
-      console.error('Please fix the credentials issues and try again.');
-      return;
-    }    
+      console.error('Google Drive credentials verification failed after multiple attempts.');
+      console.error('Will attempt to continue with limited functionality.');
+      // Continue execution with warning instead of returning
+    }
     
-    // Fetch all groups
+    // Fetch all groups with retry logic
     console.log('\n=== Fetching Customer Groups ===');
-    const groups = await groupUtils.getCustomerGroups(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+    let groups = [];
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[API CALL] Fetching customer groups from: ${BASE_URL}/${CUSTOMER_ID}/metadata/customer/groups (attempt ${attempt}/3)`);
+        groups = await groupUtils.getCustomerGroups(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+        if (groups.length > 0) break;
+        
+        console.error(`No groups found on attempt ${attempt}/3.`);
+        if (attempt < 3) {
+          console.log('Waiting 10 seconds before retrying...');
+          await sleep(10000);
+        }
+      } catch (groupError) {
+        console.error(`Error fetching groups (attempt ${attempt}/3): ${groupError.message}`);
+        if (attempt < 3) {
+          console.log('Waiting 10 seconds before retrying...');
+          await sleep(10000);
+        }
+      }
+    }
+    
     if (groups.length === 0) {
-      throw new Error('No groups found');
+      console.error('No groups found after multiple attempts. Cannot proceed.');
+      return;
     }
     
     console.log('\nGroup details:');
@@ -440,11 +486,31 @@ const main = async () => {
       console.log(`${index + 1}. Group ID: ${group.group_id}, Name: ${group.name}`);
     });
     
-    // Fetch all profiles
+    // Fetch all profiles with retry logic
     console.log('\n=== Fetching All Profiles ===');
-    const profiles = await groupUtils.getAllProfiles(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+    let profiles = [];
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        profiles = await groupUtils.getAllProfiles(BASE_URL, CUSTOMER_ID, SPROUT_API_TOKEN);
+        if (profiles.length > 0) break;
+        
+        console.error(`No profiles found on attempt ${attempt}/3.`);
+        if (attempt < 3) {
+          console.log('Waiting 10 seconds before retrying...');
+          await sleep(10000);
+        }
+      } catch (profileError) {
+        console.error(`Error fetching profiles (attempt ${attempt}/3): ${profileError.message}`);
+        if (attempt < 3) {
+          console.log('Waiting 10 seconds before retrying...');
+          await sleep(10000);
+        }
+      }
+    }
+    
     if (profiles.length === 0) {
-      throw new Error('No profiles found');
+      console.error('No profiles found after multiple attempts. Cannot proceed.');
+      return;
     }
     
     console.log('\nProfile details:');
@@ -458,14 +524,30 @@ const main = async () => {
     
     // Group profiles by group ID
     console.log('\n=== Grouping Profiles by Group ID ===');
-    const profilesByGroup = groupUtils.groupProfilesByGroup(profiles, groups);
+    let profilesByGroup;
+    try {
+      profilesByGroup = groupUtils.groupProfilesByGroup(profiles, groups);
+    } catch (groupingError) {
+      console.error(`Error grouping profiles: ${groupingError.message}`);
+      console.error('Attempting to continue with limited functionality...');
+      // Create a minimal profilesByGroup with available data
+      profilesByGroup = {};
+      groups.forEach(group => {
+        const groupProfiles = profiles.filter(profile => 
+          profile.groups && profile.groups.includes(group.group_id)
+        );
+        if (groupProfiles.length > 0) {
+          profilesByGroup[group.group_id] = {
+            groupName: group.name,
+            profiles: groupProfiles
+          };
+        }
+      });
+    }
     
     // Process each group
     console.log('\n=== Processing Each Group ===');
     const allResults = [];
-    
-    // Use the sleep function defined at the top of this file
-    // No need to import it again
     
     // Process groups with a delay between each to avoid hitting API quotas
     for (const [groupId, groupData] of Object.entries(profilesByGroup)) {
@@ -485,6 +567,9 @@ const main = async () => {
           await sleep(30000);
         } catch (error) {
           console.error(`Error processing group ${groupName}: ${error.message}`);
+          if (error.stack) {
+            console.error(`Stack trace: ${error.stack}`);
+          }
           
           // Even if there's an error, wait before trying the next group
           console.log(`Waiting 10 seconds before continuing to the next group...`);
