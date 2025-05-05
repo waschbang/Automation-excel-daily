@@ -189,7 +189,7 @@ if (daysDiff > 365) {
       
       // Minimal delay between requests - just enough to avoid rate limiting
       console.log(`Minimal delay before processing the next profile...`);
-      await sleep(300); // 300ms delay instead of 1000ms
+      await sleep(100); // 100ms delay instead of 300ms
       
     } catch (error) {
       console.error(`Error getting analytics data for profile ${profileId}: ${error.message}`);

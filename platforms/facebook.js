@@ -13,7 +13,6 @@ const HEADERS = [
   'Profile Name',
   'Network ID',
   'Profile ID',
-  'Added On',
   'Lifetime Followers Count',
   'Net Follower Growth',
   'New Followers Gained',
@@ -114,174 +113,59 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
       : 0;
     
-    // Create a mapping of our expected metrics to possible API field names
-    const metricMapping = {
-      // Followers metrics
-      followers_count: ['lifetime_snapshot.followers_count', 'followers_count'],
-      net_follower_growth: ['net_follower_growth'],
-      followers_gained: ['followers_gained', 'followers_gained_organic'],
-      followers_gained_organic: ['followers_gained_organic'],
-      followers_gained_paid: ['followers_gained_paid'],
-      followers_lost: ['followers_lost'],
-      
-      // Fans metrics
-      fans_count: ['lifetime_snapshot.fans_count', 'fans_count'],
-      fans_gained: ['fans_gained'],
-      fans_gained_organic: ['fans_gained_organic'],
-      fans_gained_paid: ['fans_gained_paid'],
-      fans_lost: ['fans_lost'],
-      
-      // Impressions metrics
-      impressions: ['impressions', 'post_impressions'],
-      impressions_organic: ['impressions_organic'],
-      impressions_viral: ['impressions_viral'],
-      impressions_nonviral: ['impressions_nonviral'],
-      impressions_paid: ['impressions_paid'],
-      
-      // Tab views
-      tab_views: ['tab_views'],
-      tab_views_login: ['tab_views_login'],
-      tab_views_logout: ['tab_views_logout'],
-      
-      // Post impressions
-      post_impressions: ['post_impressions'],
-      post_impressions_organic: ['post_impressions_organic'],
-      post_impressions_viral: ['post_impressions_viral'],
-      post_impressions_nonviral: ['post_impressions_nonviral'],
-      post_impressions_paid: ['post_impressions_paid'],
-      
-      // Unique impressions
-      impressions_unique: ['impressions_unique'],
-      impressions_organic_unique: ['impressions_organic_unique'],
-      impressions_viral_unique: ['impressions_viral_unique'],
-      impressions_nonviral_unique: ['impressions_nonviral_unique'],
-      impressions_paid_unique: ['impressions_paid_unique'],
-      
-      // Engagement metrics
-      reactions: ['reactions', 'post_engagements'],
-      comments_count: ['comments_count', 'comments'],
-      shares_count: ['shares_count', 'shares'],
-      post_link_clicks: ['post_link_clicks'],
-      post_content_clicks_other: ['post_content_clicks_other'],
-      profile_actions: ['profile_actions'],
-      post_engagements: ['post_engagements'],
-      
-      // Video metrics
-      video_views: ['video_views'],
-      video_views_organic: ['video_views_organic'],
-      video_views_paid: ['video_views_paid'],
-      video_views_autoplay: ['video_views_autoplay'],
-      video_views_click_to_play: ['video_views_click_to_play'],
-      video_views_repeat: ['video_views_repeat'],
-      video_view_time: ['video_view_time'],
-      video_views_unique: ['video_views_unique'],
-      
-      // Publishing metrics
-      posts_sent_count: ['posts_sent_count', 'posts_published_count'],
-      posts_sent_by_post_type: ['posts_sent_by_post_type'],
-      posts_sent_by_content_type: ['posts_sent_by_content_type']
-    };
-    
-    // Helper function to get the first available metric from the mapping
-    const getMetric = (metricKey) => {
-      const possibleKeys = metricMapping[metricKey] || [];
-      for (const key of possibleKeys) {
-        if (metrics[key] !== undefined) {
-          console.log(`Using '${key}' for ${metricKey} with value: ${metrics[key]}`);
-          return metrics[key];
-        }
-      }
-      console.log(`No value found for ${metricKey}, using 0`);
-      return 0;
-    };
-    
-    // Log all available metrics for debugging
-    console.log('\nAll available Facebook metrics keys:', Object.keys(metrics));
-    
-    // Get current timestamp for the 'Added On' column - use ISO format with local time
-    const now = new Date();
-    const currentTimestamp = now.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
     return [
       date,                                                // Date
       profileData ? profileData.network_type : '',           // Network Type
       profileData ? profileData.name : '',                   // Profile Name
       profileData ? profileData.network_id : '',             // Network ID
       dataPoint.dimensions.customer_profile_id || '',        // Profile ID
-      currentTimestamp,                                      // Added On
-      
-      // Followers metrics
-      safeNumber(getMetric('followers_count')),                // Lifetime Followers Count
-      safeNumber(getMetric('net_follower_growth')),            // Net Follower Growth
-      safeNumber(getMetric('followers_gained')),               // New Followers Gained
-      safeNumber(getMetric('followers_gained_organic')),       // New Followers Gained (Organic)
-      safeNumber(getMetric('followers_gained_paid')),          // New Followers Gained (Paid)
-      safeNumber(getMetric('followers_lost')),                 // Followers Lost
-      
-      // Fans metrics
-      safeNumber(getMetric('fans_count')),                     // Lifetime Fans Count
-      safeNumber(getMetric('fans_gained')),                    // New Fans Gained
-      safeNumber(getMetric('fans_gained_organic')),            // New Fans Gained (Organic)
-      safeNumber(getMetric('fans_gained_paid')),               // New Fans Gained (Paid)
-      safeNumber(getMetric('fans_lost')),                      // Fans Lost
-      
-      // Impressions metrics
-      safeNumber(getMetric('impressions')),                    // Total Impressions
-      safeNumber(getMetric('impressions_organic')),            // Organic Impressions
-      safeNumber(getMetric('impressions_viral')),              // Viral Impressions
-      safeNumber(getMetric('impressions_nonviral')),           // Non-Viral Impressions
-      safeNumber(getMetric('impressions_paid')),               // Paid Impressions
-      
-      // Tab views metrics
-      safeNumber(getMetric('tab_views')),                      // Total Tab Views
-      safeNumber(getMetric('tab_views_login')),                // Tab Views (Logged In)
-      safeNumber(getMetric('tab_views_logout')),               // Tab Views (Logged Out)
-      
-      // Post impressions metrics
-      safeNumber(getMetric('post_impressions')),               // Total Post Impressions
-      safeNumber(getMetric('post_impressions_organic')),       // Post Impressions (Organic)
-      safeNumber(getMetric('post_impressions_viral')),         // Post Impressions (Viral)
-      safeNumber(getMetric('post_impressions_nonviral')),      // Post Impressions (Non-Viral)
-      safeNumber(getMetric('post_impressions_paid')),          // Post Impressions (Paid)
-      
-      // Unique impressions metrics
-      safeNumber(getMetric('impressions_unique')),             // Unique Impressions
-      safeNumber(getMetric('impressions_organic_unique')),     // Unique Organic Impressions
-      safeNumber(getMetric('impressions_viral_unique')),       // Unique Viral Impressions
-      safeNumber(getMetric('impressions_nonviral_unique')),    // Unique Non-Viral Impressions
-      safeNumber(getMetric('impressions_paid_unique')),        // Unique Paid Impressions
-      
-      // Engagement metrics
-      safeNumber(getMetric('reactions')),                      // Total Reactions
-      safeNumber(getMetric('comments_count')),                 // Total Comments
-      safeNumber(getMetric('shares_count')),                   // Total Shares
-      safeNumber(getMetric('post_link_clicks')),               // Total Link Clicks
-      safeNumber(getMetric('post_content_clicks_other')),      // Total Other Content Clicks
-      safeNumber(getMetric('profile_actions')),                // Total Profile Actions
-      safeNumber(getMetric('post_engagements')),               // Total Post Engagements
-      
-      // Video metrics
-      safeNumber(getMetric('video_views')),                    // Total Video Views
-      safeNumber(getMetric('video_views_organic')),            // Video Views (Organic)
-      safeNumber(getMetric('video_views_paid')),               // Video Views (Paid)
-      safeNumber(getMetric('video_views_autoplay')),           // Video Views (Autoplay)
-      safeNumber(getMetric('video_views_click_to_play')),      // Video Views (Click to Play)
-      safeNumber(getMetric('video_views_repeat')),             // Video Views (Repeat)
-      safeNumber(getMetric('video_view_time')),                // Total Video View Time
-      safeNumber(getMetric('video_views_unique')),             // Unique Video Views
-      
-      // Publishing metrics
-      safeNumber(getMetric('posts_sent_count')),               // Posts Published Count
-      safeNumber(getMetric('posts_sent_by_post_type')),        // Posts by Post Type
-      safeNumber(getMetric('posts_sent_by_content_type')),     // Posts by Content Type
+      safeNumber(metrics['lifetime_snapshot.followers_count']), // Lifetime Followers Count
+      safeNumber(metrics['net_follower_growth']),            // Net Follower Growth
+      safeNumber(metrics['followers_gained']),               // New Followers Gained
+      safeNumber(metrics['followers_gained_organic']),       // New Followers Gained (Organic)
+      safeNumber(metrics['followers_gained_paid']),          // New Followers Gained (Paid)
+      safeNumber(metrics['followers_lost']),                 // Followers Lost
+      safeNumber(metrics['lifetime_snapshot.fans_count']),   // Lifetime Fans Count
+      safeNumber(metrics['fans_gained']),                    // New Fans Gained
+      safeNumber(metrics['fans_gained_organic']),            // New Fans Gained (Organic)
+      safeNumber(metrics['fans_gained_paid']),               // New Fans Gained (Paid)
+      safeNumber(metrics['fans_lost']),                      // Fans Lost
+      safeNumber(metrics['impressions']),                    // Total Impressions
+      safeNumber(metrics['impressions_organic']),            // Organic Impressions
+      safeNumber(metrics['impressions_viral']),              // Viral Impressions
+      safeNumber(metrics['impressions_nonviral']),           // Non-Viral Impressions
+      safeNumber(metrics['impressions_paid']),               // Paid Impressions
+      safeNumber(metrics['tab_views']),                      // Total Tab Views
+      safeNumber(metrics['tab_views_login']),                // Tab Views (Logged In)
+      safeNumber(metrics['tab_views_logout']),               // Tab Views (Logged Out)
+      safeNumber(metrics['post_impressions']),               // Total Post Impressions
+      safeNumber(metrics['post_impressions_organic']),       // Post Impressions (Organic)
+      safeNumber(metrics['post_impressions_viral']),         // Post Impressions (Viral)
+      safeNumber(metrics['post_impressions_nonviral']),      // Post Impressions (Non-Viral)
+      safeNumber(metrics['post_impressions_paid']),          // Post Impressions (Paid)
+      safeNumber(metrics['impressions_unique']),             // Unique Impressions
+      safeNumber(metrics['impressions_organic_unique']),     // Unique Organic Impressions
+      safeNumber(metrics['impressions_viral_unique']),       // Unique Viral Impressions
+      safeNumber(metrics['impressions_nonviral_unique']),    // Unique Non-Viral Impressions
+      safeNumber(metrics['impressions_paid_unique']),        // Unique Paid Impressions
+      safeNumber(metrics['reactions']),                      // Total Reactions
+      safeNumber(metrics['comments_count']),                 // Total Comments
+      safeNumber(metrics['shares_count']),                   // Total Shares
+      safeNumber(metrics['post_link_clicks']),               // Total Link Clicks
+      safeNumber(metrics['post_content_clicks_other']),      // Total Other Content Clicks
+      safeNumber(metrics['profile_actions']),                // Total Profile Actions
+      safeNumber(metrics['post_engagements']),               // Total Post Engagements
+      safeNumber(metrics['video_views']),                    // Total Video Views
+      safeNumber(metrics['video_views_organic']),            // Video Views (Organic)
+      safeNumber(metrics['video_views_paid']),               // Video Views (Paid)
+      safeNumber(metrics['video_views_autoplay']),           // Video Views (Autoplay)
+      safeNumber(metrics['video_views_click_to_play']),      // Video Views (Click-to-Play)
+      safeNumber(metrics['video_views_repeat']),             // Video Views (Repeat)
+      safeNumber(metrics['video_view_time']),                // Total Video View Time
+      safeNumber(metrics['video_views_unique']),             // Unique Video Views
+      safeNumber(metrics['posts_sent_count']),               // Posts Published Count
+      safeNumber(metrics['posts_sent_by_post_type']),        // Posts by Post Type
+      safeNumber(metrics['posts_sent_by_content_type']),     // Posts by Content Type
       engagements,                                           // Total Engagement Actions
       engagementRatePerImpression,                           // Engagement Rate % (per Impression)
       engagementRatePerFollower,                             // Engagement Rate % (per Follower)

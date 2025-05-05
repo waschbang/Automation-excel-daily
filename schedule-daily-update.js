@@ -14,15 +14,31 @@ const fs = require('fs');
 const CONFIG = {
   // Time to run the script daily (24-hour format)
   // Default: 6:00 AM - adjust as needed
-  hour: 21,
-  minute: 32,
+  hour: 7,
+  minute: 0,
   
   // Path to the main analytics script
-  scriptPath: path.join(__dirname, 'group-analytics.js'),
+  scriptPath: '',
   
   // Log file for the scheduler
   logPath: path.join(__dirname, 'scheduler-logs.txt')
 };
+
+// Get the absolute path to the analytics script
+// First try simple-analytics.js, then fall back to group-analytics.js if it doesn't exist
+let scriptPath;
+const simpleScriptPath = path.resolve(__dirname, 'simple-analytics.js');
+const groupScriptPath = path.resolve(__dirname, 'group-analytics.js');
+
+if (fs.existsSync(simpleScriptPath)) {
+  scriptPath = simpleScriptPath;
+  console.log('Using simplified analytics script: simple-analytics.js');
+} else {
+  scriptPath = groupScriptPath;
+  console.log('Using standard analytics script: group-analytics.js');
+}
+
+CONFIG.scriptPath = scriptPath;
 
 /**
  * Log a message to both console and log file

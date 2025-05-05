@@ -13,7 +13,6 @@ const HEADERS = [
   'Profile Name',
   'Network ID',
   'Profile ID',
-  'Added On',
   'Followers Count',
   'Net Follower Growth',
   'Followers Gained',
@@ -65,25 +64,12 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     const engagementsPerView = videoViews > 0 
       ? parseFloat((videoEngagements / videoViews).toFixed(4)) 
       : 0;
-    // Get current timestamp for the 'Added On' column - use ISO format with local time
-    const now = new Date();
-    const currentTimestamp = now.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
     const row = [
       date,
       profileData.network_type,
       profileData.name,
       profileData.network_id,
       profileData.profile_id,
-      currentTimestamp,
       metrics["lifetime_snapshot.followers_count"] || 0,
       metrics["net_follower_growth"] || 0,
       metrics["followers_gained"] || 0,

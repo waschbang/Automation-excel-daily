@@ -6,6 +6,7 @@
  * This script fetches analytics data from Sprout Social API for all profiles in each group
  * and creates separate Google Sheets for each group with the data.
  * Modified to save spreadsheets to multiple Drive folders.
+ * Uses Google Service Account authentication for continuous operation.
  */
 
 const path = require('path');
@@ -16,6 +17,7 @@ const apiUtils = require('./utils/api');
 const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/drive');
 const groupUtils = require('./utils/groups');
+const authUtils = require('./utils/auth');
 
 /**
  * Sleep for a specified duration
@@ -24,20 +26,12 @@ const groupUtils = require('./utils/groups');
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Import platform modules
-const instagram = require('./platforms/instagram');
-const youtube = require('./platforms/youtube');
-const linkedin = require('./platforms/linkedin');
-const facebook = require('./platforms/facebook');
-const twitter = require('./platforms/twitter');
-
 // API & Authentication
 const CUSTOMER_ID = "2426451";
 const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
 
 // Paths
-const CREDENTIALS_PATH = path.join(__dirname, 'credentials.json');
-const DRIVE_CREDENTIALS_PATH = path.join(__dirname, 'drive-credentials.json');
+const SERVICE_ACCOUNT_KEY_PATH = path.join(__dirname, 'service-account-key.json');
 
 // Get yesterday's date in YYYY-MM-DD format for more complete analytics data
 const getCurrentDate = () => {
@@ -68,110 +62,98 @@ const BASE_URL = "https://api.sproutsocial.com/v1";
 const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
 const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
 
-// Check if Drive credentials exist, or create them from a source file
-const saveDriveCredentials = () => {
+// Check for available credentials files
+const checkCredentials = () => {
   try {
-    // If drive credentials file already exists, don't overwrite it
-    if (fs.existsSync(DRIVE_CREDENTIALS_PATH)) {
-      console.log(`Drive credentials already exist at ${DRIVE_CREDENTIALS_PATH}`);
-      
-      // Verify the file contains valid JSON
-      try {
-        const fileContent = fs.readFileSync(DRIVE_CREDENTIALS_PATH, 'utf8');
-        const credentials = JSON.parse(fileContent);
-        
-        // Check for required fields
-        if (!credentials.private_key || !credentials.client_email) {
-          console.log('Existing credentials file is missing required fields, will recreate it.');
-          throw new Error('Invalid credentials format');
-        }
-        
-        // Check if private key looks valid (has proper BEGIN/END markers)
-        if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
-            !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
-          console.log('Existing credentials file has malformed private key, will recreate it.');
-          throw new Error('Malformed private key');
-        }
-        
-        return;
-      } catch (parseError) {
-        console.log(`Existing credentials file has issues, will recreate it: ${parseError.message}`);
-      }
+    // First check for service account key
+    if (fs.existsSync(SERVICE_ACCOUNT_KEY_PATH)) {
+      console.log(`Found service account key at ${SERVICE_ACCOUNT_KEY_PATH}`);
+      return SERVICE_ACCOUNT_KEY_PATH;
     }
     
-    // Source credentials file path (use credentials.json if it exists)
-    const sourceCredentialsPath = path.join(__dirname, 'credentials.json');
-    
-    if (!fs.existsSync(sourceCredentialsPath)) {
-      throw new Error(`Source credentials file not found at ${sourceCredentialsPath}`);
+    // Check for drive-credentials.json as fallback
+    const driveCredentialsPath = path.join(__dirname, 'drive-credentials.json');
+    if (fs.existsSync(driveCredentialsPath)) {
+      console.log(`Service account key not found, using drive credentials at ${driveCredentialsPath}`);
+      return driveCredentialsPath;
     }
     
-    // Read credentials from source file
-    const credentials = JSON.parse(fs.readFileSync(sourceCredentialsPath, 'utf8'));
-    
-    // Ensure it has the required fields for a service account
-    if (!credentials.private_key || !credentials.client_email) {
-      throw new Error('Source credentials file is missing required service account fields');
+    // Check for credentials.json as second fallback
+    const credentialsPath = path.join(__dirname, 'credentials.json');
+    if (fs.existsSync(credentialsPath)) {
+      console.log(`Using credentials at ${credentialsPath}`);
+      return credentialsPath;
     }
     
-    // Ensure private key has proper format
-    if (!credentials.private_key.includes('-----BEGIN PRIVATE KEY-----') || 
-        !credentials.private_key.includes('-----END PRIVATE KEY-----')) {
-      throw new Error('Source credentials file has malformed private key');
-    }
-
-    // Write to drive credentials file
-    fs.writeFileSync(DRIVE_CREDENTIALS_PATH, JSON.stringify(credentials, null, 2));
-    console.log(`Drive credentials saved to ${DRIVE_CREDENTIALS_PATH}`);
+    // No credentials found
+    throw new Error(`No credentials found. Please create one of the following files:\n- ${SERVICE_ACCOUNT_KEY_PATH}\n- ${driveCredentialsPath}\n- ${credentialsPath}`);
   } catch (error) {
-    console.error(`Failed to save drive credentials: ${error.message}`);
-    console.error('Please ensure you have valid Google service account credentials in credentials.json');
-    console.error('You may need to generate new service account keys from the Google Cloud Console.');
+    console.error(`Credentials error: ${error.message}`);
+    console.error('\nPlease ensure you have:');
+    console.error('1. Created a service account or OAuth client in the Google Cloud Console');
+    console.error('2. Downloaded the credentials file');
+    console.error('3. Saved it to one of the locations mentioned above');
+    console.error('4. Shared your Google Drive folders with the appropriate account');
     process.exit(1); // Exit if we can't set up credentials - no point continuing
   }
 };
 
 /**
- * Verify Google Drive credentials by making a test API call
- * @returns {Promise<boolean>} True if credentials are valid, false otherwise
+ * Authenticate with Google Drive and verify access to folders
+ * @returns {Promise<{auth, drive, sheets}>} Authentication and API clients
  */
-const verifyDriveCredentials = async () => {
+const authenticateAndVerifyAccess = async () => {
   try {
-    console.log('Verifying Google Drive credentials...');
+    console.log('Authenticating with Google APIs...');
     
-    // Get Google Drive client
-    const { drive, sheets, auth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
-    if (!drive || !sheets || !auth) {
-      throw new Error('Failed to initialize Google Drive client');
+    // Get the path to credentials file
+    const credentialsPath = checkCredentials();
+    
+    // Authenticate with the credentials
+    const googleClients = await authUtils.authenticateWithServiceAccount(credentialsPath);
+    if (!googleClients.drive || !googleClients.sheets || !googleClients.auth) {
+      throw new Error('Failed to initialize Google API clients');
     }
     
     // Make a simple API call to test authentication
     // List files with a very small limit to minimize API usage
-    await drive.files.list({
+    await googleClients.drive.files.list({
       pageSize: 1,
       fields: 'files(id, name)'
     });
     
-    console.log('Google Drive credentials verified successfully!');
-    return true;
-  } catch (error) {
-    console.error(`Google Drive credentials verification failed: ${error.message}`);
+    console.log('Google Service Account authentication successful!');
     
-    if (error.message.includes('invalid_grant') || 
-        error.message.includes('Invalid JWT') || 
-        error.message.includes('Token has been expired')) {
-      console.error('\nAuthentication error detected. The service account credentials are invalid or expired.');
-      console.error('Please generate new service account keys from the Google Cloud Console.');
-      console.error('1. Go to https://console.cloud.google.com/');
-      console.error('2. Select your project');
-      console.error('3. Go to IAM & Admin > Service Accounts');
-      console.error('4. Find your service account and create a new key');
-      console.error('5. Download the key as JSON and save it as credentials.json in this directory');
-      console.error('6. Delete the existing drive-credentials.json file');
-      console.error('7. Run this script again');
+    // Verify access to all folders
+    let allFoldersAccessible = true;
+    for (const folderConfig of FOLDER_CONFIGS) {
+      const folderAccessible = await authUtils.verifyFolderAccess(googleClients.drive, folderConfig.folderId);
+      if (!folderAccessible) {
+        console.error(`Warning: Issues accessing folder ${folderConfig.folderId}`);
+        console.error('Make sure the folder is shared with the service account email.');
+        allFoldersAccessible = false;
+      }
     }
     
-    return false;
+    if (!allFoldersAccessible) {
+      console.warn('\nSome folders may not be accessible. The script will continue but may encounter errors.');
+      console.warn('Please ensure all folders are shared with the service account email with Editor permissions.');
+    }
+    
+    return googleClients;
+  } catch (error) {
+    console.error(`Google Drive authentication failed: ${error.message}`);
+    
+    if (error.message.includes('invalid_grant') || 
+        error.message.includes('Invalid JWT')) {
+      console.error('\nAuthentication error detected. The service account credentials are invalid.');
+      console.error('Please generate new service account keys from the Google Cloud Console.');
+    } else if (error.message.includes('permission') || error.message.includes('access')) {
+      console.error('\nPermission error detected. The service account does not have access to the requested resources.');
+      console.error('Please ensure all Google Drive folders are shared with the service account email.');
+    }
+    
+    process.exit(1); // Exit if authentication fails - no point continuing
   }
 };
 
@@ -180,27 +162,19 @@ const verifyDriveCredentials = async () => {
  * @param {string} groupId - Group ID
  * @param {string} groupName - Group name
  * @param {Array} profiles - Array of profiles in the group
+ * @param {Object} googleClients - Authenticated Google API clients
  * @returns {Promise<Array<Object>>} Array of spreadsheet details
  */
-const processGroupAnalytics = async (groupId, groupName, profiles) => {
+const processGroupAnalytics = async (groupId, groupName, profiles, googleClients) => {
   try {
     const groupStartTime = new Date();
-    console.log(`\n=== Processing Group: ${groupName} (${groupId}) at ${groupStartTime.toLocaleTimeString()} ===`);
+    console.log(`\n=== Processing Group: ${groupName} (${groupId}) ===`);
     console.log(`Found ${profiles.length} profiles in this group`);
     
-    // Get Google Drive client
-    const { drive, sheets, auth, refreshAuth } = await driveUtils.getDriveClient(DRIVE_CREDENTIALS_PATH);
-    if (!drive || !sheets || !auth) {
-      throw new Error('Failed to authenticate with Google Drive API');
-    }
-    
-    // Refresh authentication token before critical operations
-    try {
-      await refreshAuth();
-      console.log('Authentication refreshed before processing group analytics');
-    } catch (refreshError) {
-      console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
-      console.warn('Proceeding with existing token...');
+    // Use the provided Google API clients
+    const { drive, sheets } = googleClients;
+    if (!drive || !sheets) {
+      throw new Error('Invalid Google API clients provided');
     }
     
     // Create spreadsheets in all specified folders with their respective date ranges
@@ -237,7 +211,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       } else {
         // No existing spreadsheet found, create a new one
         console.log(`No existing spreadsheet found. Creating a new one: "${spreadsheetTitle}"`);
-        spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, folderId, refreshAuth);
+        spreadsheetId = await driveUtils.createSpreadsheet(sheets, drive, spreadsheetTitle, folderId);
         
         if (!spreadsheetId) {
           console.error(`Failed to create spreadsheet for group ${groupName} in folder ${folderId}`);
@@ -264,13 +238,13 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
       for (const [networkType, networkProfiles] of Object.entries(profilesByNetwork)) {
         if (networkProfiles.length > 0) {
           const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-          await driveUtils.createSheet(sheets, spreadsheetId, sheetName, refreshAuth);
+          await driveUtils.createSheet(sheets, spreadsheetId, sheetName);
           createdSheets.push(sheetName);
           
           // Set up headers
           const module = networkModules[networkType];
           if (module && module.setupHeaders) {
-            await module.setupHeaders(sheetsUtils, auth, spreadsheetId);
+            await module.setupHeaders(sheetsUtils, googleClients.auth, spreadsheetId);
           }
         }
       }
@@ -287,7 +261,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
         
         // Check if we already have data for today in the spreadsheet
         for (const sheetName of createdSheets) {
-          const existingValues = await sheetsUtils.getSheetValues(auth, spreadsheetId, sheetName, 'A:A');
+          const existingValues = await sheetsUtils.getSheetValues(googleClients.auth, spreadsheetId, sheetName, 'A:A');
           if (existingValues && existingValues.length > 1) {
             // Check if today's date exists in column A
             const todayExists = existingValues.some(row => row[0] === today);
@@ -448,7 +422,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles) => {
               // Wrap the update in a function that logs timing information
               const updateWithTiming = async () => {
                 try {
-                  await module.updateSheet(sheetsUtils, auth, spreadsheetId, rows);
+                  await module.updateSheet(sheetsUtils, googleClients.auth, spreadsheetId, rows);
                   const sheetEndTime = new Date();
                   const sheetTimeMs = sheetEndTime - sheetTimers[sheetName];
                   const sheetTimeSec = Math.round(sheetTimeMs / 1000);
@@ -540,44 +514,9 @@ const main = async () => {
     
     trackTime('Process started');
     
-    // Save Drive credentials with better error handling
-    try {
-      saveDriveCredentials();
-      trackTime('Drive credentials saved');
-    } catch (credError) {
-      console.error(`Error saving drive credentials: ${credError.message}`);
-      console.error('Continuing with existing credentials if available...');
-    }
-    
-    // Verify Drive credentials before proceeding with multiple retries
-    let credentialsValid = false;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      try {
-        console.log(`Verifying Google Drive credentials (attempt ${attempt}/3)...`);
-        credentialsValid = await verifyDriveCredentials();
-        if (credentialsValid) break;
-        
-        console.error(`Credentials verification failed on attempt ${attempt}/3.`);
-        if (attempt < 3) {
-          console.log('Waiting 5 seconds before retrying...');
-          await sleep(5000);
-        }
-      } catch (verifyError) {
-        console.error(`Error during credentials verification (attempt ${attempt}/3): ${verifyError.message}`);
-        if (attempt < 3) {
-          console.log('Waiting 5 seconds before retrying...');
-          await sleep(5000);
-        }
-      }
-    }
-    
-    if (!credentialsValid) {
-      console.error('Google Drive credentials verification failed after multiple attempts.');
-      console.error('Will attempt to continue with limited functionality.');
-      // Continue execution with warning instead of returning
-    }
-    
-    trackTime('Credentials verification complete');
+    // Authenticate with Google APIs and verify folder access
+    const googleClients = await authenticateAndVerifyAccess();
+    trackTime('Google Drive authentication complete');
     
     // Fetch all groups with retry logic
     console.log('\n=== Fetching Customer Groups ===');
@@ -685,7 +624,7 @@ const main = async () => {
       if (profiles.length > 0) {
         try {
           console.log(`\nProcessing group: ${groupName} (${groupId}) with ${profiles.length} profiles`);
-          const results = await processGroupAnalytics(groupId, groupName, profiles);
+          const results = await processGroupAnalytics(groupId, groupName, profiles, googleClients);
           if (results && results.length > 0) {
             allResults.push(...results);
           }

@@ -590,3 +590,636 @@ Token refreshed successfully
 [2025-05-04T16:02:00.030Z] Max buffer size: 50MB
 [2025-05-04T16:02:00.031Z] 
 === EXECUTION STARTING ===
+[2025-05-05T07:13:34.599Z] Scheduler set to run DAILY at 21:32
+[2025-05-05T07:13:34.605Z] Running initial analytics update on startup...
+[2025-05-05T07:13:34.605Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:13:34.607Z] Start time: 5/5/2025, 12:43:34 PM
+[2025-05-05T07:13:34.607Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:13:34.608Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:13:34.609Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:13:34.609Z] Max buffer size: 50MB
+[2025-05-05T07:13:34.610Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:13:34.623Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:32:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:13:34.624Z] Script will run daily at 21:32
+[2025-05-05T07:13:36.115Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Service account key error: Service account key file not found at C:\Users\Laptop-1077\Desktop\trial\Automation-excel\service-account-key.json
+
+Please ensure you have:
+1. Created a service account in the Google Cloud Console
+2. Generated a key for the service account
+3. Saved the key as C:\Users\Laptop-1077\Desktop\trial\Automation-excel\service-account-key.json
+4. Shared your Google Drive folders with the service account email
+
+[2025-05-05T07:13:36.116Z] Script failed after 0 minutes (2 seconds)
+[2025-05-05T07:14:03.478Z] Scheduler set to run DAILY at 21:32
+[2025-05-05T07:14:03.485Z] Running initial analytics update on startup...
+[2025-05-05T07:14:03.486Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:14:03.487Z] Start time: 5/5/2025, 12:44:03 PM
+[2025-05-05T07:14:03.488Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:14:03.488Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:14:03.489Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:14:03.489Z] Max buffer size: 50MB
+[2025-05-05T07:14:03.490Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:14:03.510Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:32:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:14:03.511Z] Script will run daily at 21:32
+[2025-05-05T07:14:04.965Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:14:04.966Z] Script failed after 0 minutes (1 seconds)
+[2025-05-05T07:14:57.825Z] Scheduler stopping...
+[2025-05-05T07:14:59.984Z] Scheduler set to run DAILY at 21:32
+[2025-05-05T07:14:59.991Z] Running initial analytics update on startup...
+[2025-05-05T07:14:59.992Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:14:59.993Z] Start time: 5/5/2025, 12:44:59 PM
+[2025-05-05T07:14:59.994Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:14:59.995Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:14:59.997Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:14:59.997Z] Max buffer size: 50MB
+[2025-05-05T07:14:59.998Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:15:00.017Z] Scheduler started. Next run scheduled for: Mon May 05 2025 21:32:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:15:00.018Z] Script will run daily at 21:32
+[2025-05-05T07:15:01.454Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:15:01.455Z] Script failed after 0 minutes (1 seconds)
+[2025-05-05T07:15:03.475Z] Scheduler stopping...
+[2025-05-05T07:17:42.354Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:17:42.361Z] Running initial analytics update on startup...
+[2025-05-05T07:17:42.361Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:17:42.362Z] Start time: 5/5/2025, 12:47:42 PM
+[2025-05-05T07:17:42.363Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:17:42.365Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:17:42.365Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:17:42.366Z] Max buffer size: 50MB
+[2025-05-05T07:17:42.367Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:17:42.382Z] Scheduler started. Next run scheduled for: Mon May 05 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:17:42.384Z] Script will run daily at 12:48
+[2025-05-05T07:17:43.566Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:17:43.567Z] Script failed after 0 minutes (1 seconds)
+[2025-05-05T07:18:00.012Z] Running scheduled job at 5/5/2025, 12:48:00 PM
+[2025-05-05T07:18:00.013Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:18:00.014Z] Start time: 5/5/2025, 12:48:00 PM
+[2025-05-05T07:18:00.015Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:18:00.015Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:18:00.015Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:18:00.016Z] Max buffer size: 50MB
+[2025-05-05T07:18:00.017Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:18:01.518Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:18:01.519Z] Script failed after 0 minutes (2 seconds)
+[2025-05-05T07:26:30.705Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:26:30.710Z] Running initial analytics update on startup...
+[2025-05-05T07:26:30.711Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:26:30.712Z] Start time: 5/5/2025, 12:56:30 PM
+[2025-05-05T07:26:30.713Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:26:30.713Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:26:30.713Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:26:30.713Z] Max buffer size: 50MB
+[2025-05-05T07:26:30.714Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:26:30.729Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:26:30.730Z] Script will run daily at 12:48
+[2025-05-05T07:26:32.088Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Service account authentication error: error:1E08010C:DECODER routines::unsupported
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:26:32.090Z] Script failed after 0 minutes (1 seconds)
+[2025-05-05T07:27:32.302Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:27:32.309Z] Running initial analytics update on startup...
+[2025-05-05T07:27:32.310Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:27:32.310Z] Start time: 5/5/2025, 12:57:32 PM
+[2025-05-05T07:27:32.311Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:27:32.312Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:27:32.312Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js
+[2025-05-05T07:27:32.313Z] Max buffer size: 50MB
+[2025-05-05T07:27:32.314Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:27:32.327Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:27:32.328Z] Script will run daily at 12:48
+[2025-05-05T07:27:33.688Z] Error executing script: Command failed: node "C:\Users\Laptop-1077\Desktop\trial\Automation-excel\group-analytics.js"
+Service account authentication error: error:1E08010C:DECODER routines::unsupported
+Google Drive authentication failed: error:1E08010C:DECODER routines::unsupported
+
+[2025-05-05T07:27:33.689Z] Script failed after 0 minutes (1 seconds)
+[2025-05-05T07:30:17.507Z] Scheduler stopping...
+[2025-05-05T07:30:20.030Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:30:20.031Z] Running initial analytics update on startup...
+[2025-05-05T07:30:20.032Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:30:20.034Z] Start time: 5/5/2025, 1:00:20 PM
+[2025-05-05T07:30:20.034Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:30:20.035Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:30:20.035Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:30:20.036Z] Max buffer size: 50MB
+[2025-05-05T07:30:20.036Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:30:20.050Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:30:20.051Z] Script will run daily at 12:48
+[2025-05-05T07:30:23.077Z] Scheduler stopping...
+[2025-05-05T07:33:12.458Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:33:12.459Z] Running initial analytics update on startup...
+[2025-05-05T07:33:12.459Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:33:12.460Z] Start time: 5/5/2025, 1:03:12 PM
+[2025-05-05T07:33:12.461Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:33:12.461Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:33:12.462Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:33:12.462Z] Max buffer size: 50MB
+[2025-05-05T07:33:12.463Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:33:12.477Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:33:12.477Z] Script will run daily at 12:48
+[2025-05-05T07:33:15.501Z] Script stderr: Error processing group Schbang: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Level SuperMind: driveUtils.findExistingSpreadsheet is not a function
+Error processing group JioHotstar: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Soktas: driveUtils.findExistingSpreadsheet is not a function
+Error processing group ICA Pidilite: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Torrent Electricals: driveUtils.findExistingSpreadsheet is not a function
+Error processing group HDFC Ergo: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Apollo Hospitals: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Naukri.com: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Bonito Designs: driveUtils.findExistingSpreadsheet is not a function
+Error processing group Sapient Finserv: driveUtils.findExistingSpreadsheet is not a function
+Error pro...
+[2025-05-05T07:33:15.502Z] Analytics update completed successfully at 1:03:15 PM
+[2025-05-05T07:33:15.502Z] Total execution time: 0.1 minutes (3 seconds)
+[2025-05-05T07:33:15.503Z] Output: Starting Group Analytics Processing at 1:03:13 PM
+Authenticating with Google APIs...
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+Found 80 customer groups
+Found 80 groups
+
+=== Fetching All Profiles ===
+[API CALL] Fetching all profiles from: https://api.sproutsocial.com/v1/2426451/metadata/custome...
+[2025-05-05T07:34:10.148Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:34:10.149Z] Running initial analytics update on startup...
+[2025-05-05T07:34:10.150Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:34:10.151Z] Start time: 5/5/2025, 1:04:10 PM
+[2025-05-05T07:34:10.152Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:34:10.152Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:34:10.152Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:34:10.153Z] Max buffer size: 50MB
+[2025-05-05T07:34:10.153Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:34:10.168Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:34:10.169Z] Script will run daily at 12:48
+[2025-05-05T07:34:12.857Z] Script stderr: Error finding existing spreadsheet: No access, refresh token, API key or refresh handler callback is set.
+Failed to create spreadsheet for group Schbang: No access, refresh token, API key or refresh handler callback is set.
+Error finding existing spreadsheet: No access, refresh token, API key or refresh handler callback is set.
+Failed to create spreadsheet for group Level SuperMind: No access, refresh token, API key or refresh handler callback is set.
+Error finding existing spreadsheet: No access, refresh token, API key or refresh handler callback is set.
+Failed to create spreadsheet for group JioHotstar: No access, refresh token, API key or refresh handler callback is set.
+Error finding existing spreadsheet: No access, refresh token, API key or refresh handler callback is set.
+Failed to create spreadsheet for group Soktas: No access, refresh token, API key or refresh handler callback is set.
+Error finding existing spreadsheet: No access, refresh token, API key or refresh handler callb...
+[2025-05-05T07:34:12.859Z] Analytics update completed successfully at 1:04:12 PM
+[2025-05-05T07:34:12.860Z] Total execution time: 0.1 minutes (3 seconds)
+[2025-05-05T07:34:12.861Z] Output: Starting Group Analytics Processing at 1:04:11 PM
+Authenticating with Google APIs...
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+Found 80 customer groups
+Found 80 groups
+
+=== Fetching All Profiles ===
+[API CALL] Fetching all profiles from: https://api.sproutsocial.com/v1/2426451/metadata/custome...
+[2025-05-05T07:35:12.722Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:35:12.722Z] Running initial analytics update on startup...
+[2025-05-05T07:35:12.723Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:35:12.723Z] Start time: 5/5/2025, 1:05:12 PM
+[2025-05-05T07:35:12.723Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:35:12.724Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:35:12.724Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:35:12.724Z] Max buffer size: 50MB
+[2025-05-05T07:35:12.725Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:35:12.733Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:35:12.733Z] Script will run daily at 12:48
+[2025-05-05T07:38:59.255Z] Scheduler set to run DAILY at 12:48
+[2025-05-05T07:38:59.256Z] Running initial analytics update on startup...
+[2025-05-05T07:38:59.257Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:38:59.257Z] Start time: 5/5/2025, 1:08:59 PM
+[2025-05-05T07:38:59.258Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:38:59.258Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:38:59.258Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:38:59.259Z] Max buffer size: 50MB
+[2025-05-05T07:38:59.259Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:38:59.268Z] Scheduler started. Next run scheduled for: Tue May 06 2025 12:48:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:38:59.268Z] Script will run daily at 12:48
+[2025-05-05T07:40:03.310Z] Scheduler stopping...
+[2025-05-05T07:40:15.417Z] Script stderr: Service account authentication failed: error:1E08010C:DECODER routines::unsupported
+Failed to create spreadsheet for group Treo: Internal error encountered.
+
+[2025-05-05T07:40:15.418Z] Analytics update completed successfully at 1:10:15 PM
+[2025-05-05T07:40:15.418Z] Total execution time: 5.1 minutes (303 seconds)
+[2025-05-05T07:40:15.418Z] Output: Starting Group Analytics Processing at 1:05:13 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Falling back to drive-credentials.json...
+Authentication with drive-credentials.json successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451...
+[2025-05-05T07:40:22.905Z] Scheduler set to run DAILY at 13:11
+[2025-05-05T07:40:22.906Z] Running initial analytics update on startup...
+[2025-05-05T07:40:22.906Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:40:22.907Z] Start time: 5/5/2025, 1:10:22 PM
+[2025-05-05T07:40:22.907Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:40:22.908Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:40:22.908Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:40:22.908Z] Max buffer size: 50MB
+[2025-05-05T07:40:22.909Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:40:22.917Z] Scheduler started. Next run scheduled for: Mon May 05 2025 13:11:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:40:22.918Z] Script will run daily at 13:11
+[2025-05-05T07:41:00.021Z] Running scheduled job at 5/5/2025, 1:11:00 PM
+[2025-05-05T07:41:00.022Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:41:00.022Z] Start time: 5/5/2025, 1:11:00 PM
+[2025-05-05T07:41:00.022Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:41:00.023Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:41:00.023Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:41:00.024Z] Max buffer size: 50MB
+[2025-05-05T07:41:00.024Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:42:45.029Z] Script stderr: Error checking for existing data: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.. Will proceed with update.
+Error updating sheet: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.
+Sheet API Error: {
+  error: {
+    code: 429,
+    message: "Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.",
+    errors: [ [Object] ],
+    status: 'RESOURCE_EXHAUSTED',
+    details: [ [Object], [Object] ]
+  }
+}
+
+[2025-05-05T07:42:45.030Z] Analytics update completed successfully at 1:12:45 PM
+[2025-05-05T07:42:45.031Z] Total execution time: 2.4 minutes (142 seconds)
+[2025-05-05T07:42:45.031Z] Output: Starting Group Analytics Processing at 1:10:23 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching customer...
+[2025-05-05T07:43:25.391Z] Script stderr: Error creating Instagram sheet: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.
+Error creating Facebook sheet: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.
+Error creating Twitter sheet: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.
+Error checking for existing data: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.. Will proceed with update.
+Error updating sheet: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for...
+[2025-05-05T07:43:25.392Z] Analytics update completed successfully at 1:13:25 PM
+[2025-05-05T07:43:25.393Z] Total execution time: 2.4 minutes (145 seconds)
+[2025-05-05T07:43:25.393Z] Output: Starting Group Analytics Processing at 1:11:00 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching customer...
+[2025-05-05T07:49:46.909Z] Scheduler stopping...
+[2025-05-05T07:49:51.151Z] Scheduler set to run DAILY at 13:11
+[2025-05-05T07:49:51.152Z] Running initial analytics update on startup...
+[2025-05-05T07:49:51.152Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:49:51.153Z] Start time: 5/5/2025, 1:19:51 PM
+[2025-05-05T07:49:51.153Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:49:51.153Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:49:51.153Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:49:51.154Z] Max buffer size: 50MB
+[2025-05-05T07:49:51.154Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:49:51.163Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:11:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:49:51.163Z] Script will run daily at 13:11
+[2025-05-05T07:49:53.228Z] Scheduler stopping...
+[2025-05-05T07:50:01.288Z] Scheduler set to run DAILY at 13:20
+[2025-05-05T07:50:01.288Z] Running initial analytics update on startup...
+[2025-05-05T07:50:01.289Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:50:01.290Z] Start time: 5/5/2025, 1:20:01 PM
+[2025-05-05T07:50:01.290Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:50:01.291Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:50:01.291Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:50:01.291Z] Max buffer size: 50MB
+[2025-05-05T07:50:01.292Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:50:01.300Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:20:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:50:01.300Z] Script will run daily at 13:20
+[2025-05-05T07:50:23.333Z] Scheduler stopping...
+[2025-05-05T07:50:30.348Z] Scheduler set to run DAILY at 13:21
+[2025-05-05T07:50:30.348Z] Running initial analytics update on startup...
+[2025-05-05T07:50:30.349Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:50:30.350Z] Start time: 5/5/2025, 1:20:30 PM
+[2025-05-05T07:50:30.350Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:50:30.351Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:50:30.351Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:50:30.351Z] Max buffer size: 50MB
+[2025-05-05T07:50:30.352Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:50:30.360Z] Scheduler started. Next run scheduled for: Mon May 05 2025 13:21:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:50:30.361Z] Script will run daily at 13:21
+[2025-05-05T07:51:00.011Z] Running scheduled job at 5/5/2025, 1:21:00 PM
+[2025-05-05T07:51:00.012Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:51:00.013Z] Start time: 5/5/2025, 1:21:00 PM
+[2025-05-05T07:51:00.013Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:51:00.014Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:51:00.014Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:51:00.014Z] Max buffer size: 50MB
+[2025-05-05T07:51:00.015Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:56:22.800Z] Scheduler set to run DAILY at 13:21
+[2025-05-05T07:56:22.800Z] Running initial analytics update on startup...
+[2025-05-05T07:56:22.801Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:56:22.801Z] Start time: 5/5/2025, 1:26:22 PM
+[2025-05-05T07:56:22.802Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:56:22.802Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:56:22.802Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:56:22.802Z] Max buffer size: 50MB
+[2025-05-05T07:56:22.803Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:56:22.811Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:21:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:56:22.812Z] Script will run daily at 13:21
+[2025-05-05T07:56:40.116Z] Scheduler stopping...
+[2025-05-05T07:56:49.961Z] Scheduler set to run DAILY at 13:27
+[2025-05-05T07:56:49.962Z] Running initial analytics update on startup...
+[2025-05-05T07:56:49.962Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:56:49.963Z] Start time: 5/5/2025, 1:26:49 PM
+[2025-05-05T07:56:49.964Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:56:49.964Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:56:49.965Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:56:49.965Z] Max buffer size: 50MB
+[2025-05-05T07:56:49.966Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T07:56:49.974Z] Scheduler started. Next run scheduled for: Mon May 05 2025 13:27:00 GMT+0530 (India Standard Time)
+[2025-05-05T07:56:49.975Z] Script will run daily at 13:27
+[2025-05-05T07:57:00.010Z] Running scheduled job at 5/5/2025, 1:27:00 PM
+[2025-05-05T07:57:00.011Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T07:57:00.012Z] Start time: 5/5/2025, 1:27:00 PM
+[2025-05-05T07:57:00.012Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T07:57:00.013Z] Date range: Today only (2025-05-05)
+[2025-05-05T07:57:00.013Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T07:57:00.014Z] Max buffer size: 50MB
+[2025-05-05T07:57:00.014Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T08:00:38.985Z] Scheduler stopping...
+[2025-05-05T08:11:00.374Z] Analytics update completed successfully at 1:41:00 PM
+[2025-05-05T08:11:00.375Z] Total execution time: 14.6 minutes (878 seconds)
+[2025-05-05T08:11:00.376Z] Output: Starting Group Analytics Processing at 1:26:23 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching customer...
+[2025-05-05T08:15:20.983Z] Scheduler set to run DAILY at 13:27
+[2025-05-05T08:15:20.984Z] Running initial analytics update on startup...
+[2025-05-05T08:15:20.984Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T08:15:20.986Z] Start time: 5/5/2025, 1:45:20 PM
+[2025-05-05T08:15:20.986Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T08:15:20.987Z] Date range: Today only (2025-05-05)
+[2025-05-05T08:15:20.988Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T08:15:20.988Z] Max buffer size: 50MB
+[2025-05-05T08:15:20.989Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T08:15:21.003Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:27:00 GMT+0530 (India Standard Time)
+[2025-05-05T08:15:21.004Z] Script will run daily at 13:27
+[2025-05-05T08:15:55.224Z] Scheduler stopping...
+[2025-05-05T08:19:32.247Z] Scheduler set to run DAILY at 13:49
+[2025-05-05T08:19:32.248Z] Running initial analytics update on startup...
+[2025-05-05T08:19:32.249Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T08:19:32.250Z] Start time: 5/5/2025, 1:49:32 PM
+[2025-05-05T08:19:32.251Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T08:19:32.252Z] Date range: Today only (2025-05-05)
+[2025-05-05T08:19:32.252Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T08:19:32.253Z] Max buffer size: 50MB
+[2025-05-05T08:19:32.254Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T08:19:32.270Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:49:00 GMT+0530 (India Standard Time)
+[2025-05-05T08:19:32.270Z] Script will run daily at 13:49
+[2025-05-05T08:19:54.516Z] Scheduler stopping...
+[2025-05-05T08:20:04.482Z] Scheduler set to run DAILY at 13:50
+[2025-05-05T08:20:04.483Z] Running initial analytics update on startup...
+[2025-05-05T08:20:04.484Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T08:20:04.485Z] Start time: 5/5/2025, 1:50:04 PM
+[2025-05-05T08:20:04.485Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T08:20:04.486Z] Date range: Today only (2025-05-05)
+[2025-05-05T08:20:04.486Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T08:20:04.486Z] Max buffer size: 50MB
+[2025-05-05T08:20:04.487Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T08:20:04.501Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:50:00 GMT+0530 (India Standard Time)
+[2025-05-05T08:20:04.501Z] Script will run daily at 13:50
+[2025-05-05T08:21:44.622Z] Scheduler stopping...
+[2025-05-05T09:26:08.706Z] Scheduler set to run DAILY at 13:21
+[2025-05-05T09:26:08.706Z] Running initial analytics update on startup...
+[2025-05-05T09:26:08.707Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:26:08.708Z] Start time: 5/5/2025, 2:56:08 PM
+[2025-05-05T09:26:08.708Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:26:08.708Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:26:08.709Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:26:08.709Z] Max buffer size: 50MB
+[2025-05-05T09:26:08.709Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:26:08.718Z] Scheduler started. Next run scheduled for: Tue May 06 2025 13:21:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:26:08.718Z] Script will run daily at 13:21
+[2025-05-05T09:26:14.553Z] Scheduler stopping...
+[2025-05-05T09:42:05.201Z] Scheduler set to run DAILY at 15:11
+[2025-05-05T09:42:05.202Z] Running initial analytics update on startup...
+[2025-05-05T09:42:05.202Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:42:05.203Z] Start time: 5/5/2025, 3:12:05 PM
+[2025-05-05T09:42:05.203Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:42:05.204Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:42:05.204Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:42:05.204Z] Max buffer size: 50MB
+[2025-05-05T09:42:05.205Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:42:05.213Z] Scheduler started. Next run scheduled for: Tue May 06 2025 15:11:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:42:05.213Z] Script will run daily at 15:11
+[2025-05-05T09:42:08.610Z] Scheduler stopping...
+[2025-05-05T09:42:22.682Z] Scheduler set to run DAILY at 15:13
+[2025-05-05T09:42:22.682Z] Running initial analytics update on startup...
+[2025-05-05T09:42:22.683Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:42:22.683Z] Start time: 5/5/2025, 3:12:22 PM
+[2025-05-05T09:42:22.683Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:42:22.684Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:42:22.684Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:42:22.684Z] Max buffer size: 50MB
+[2025-05-05T09:42:22.685Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:42:22.693Z] Scheduler started. Next run scheduled for: Mon May 05 2025 15:13:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:42:22.694Z] Script will run daily at 15:13
+[2025-05-05T09:43:00.008Z] Running scheduled job at 5/5/2025, 3:13:00 PM
+[2025-05-05T09:43:00.009Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:43:00.009Z] Start time: 5/5/2025, 3:13:00 PM
+[2025-05-05T09:43:00.010Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:43:00.010Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:43:00.010Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:43:00.011Z] Max buffer size: 50MB
+[2025-05-05T09:43:00.011Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:43:39.289Z] Scheduler stopping...
+[2025-05-05T09:47:06.615Z] Scheduler set to run DAILY at 15:13
+[2025-05-05T09:47:06.617Z] Running initial analytics update on startup...
+[2025-05-05T09:47:06.619Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:47:06.620Z] Start time: 5/5/2025, 3:17:06 PM
+[2025-05-05T09:47:06.621Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:47:06.622Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:47:06.622Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:47:06.624Z] Max buffer size: 50MB
+[2025-05-05T09:47:06.625Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:47:06.675Z] Scheduler started. Next run scheduled for: Tue May 06 2025 15:13:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:47:06.676Z] Script will run daily at 15:13
+[2025-05-05T09:47:08.977Z] Scheduler stopping...
+[2025-05-05T09:48:57.496Z] Scheduler set to run DAILY at 15:19
+[2025-05-05T09:48:57.497Z] Running initial analytics update on startup...
+[2025-05-05T09:48:57.499Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:48:57.500Z] Start time: 5/5/2025, 3:18:57 PM
+[2025-05-05T09:48:57.501Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:48:57.502Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:48:57.503Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:48:57.504Z] Max buffer size: 50MB
+[2025-05-05T09:48:57.505Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:48:57.521Z] Scheduler started. Next run scheduled for: Mon May 05 2025 15:19:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:48:57.522Z] Script will run daily at 15:19
+[2025-05-05T09:49:00.024Z] Running scheduled job at 5/5/2025, 3:19:00 PM
+[2025-05-05T09:49:00.025Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:49:00.026Z] Start time: 5/5/2025, 3:19:00 PM
+[2025-05-05T09:49:00.027Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:49:00.027Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:49:00.028Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:49:00.029Z] Max buffer size: 50MB
+[2025-05-05T09:49:00.030Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:49:44.828Z] Scheduler set to run DAILY at 15:19
+[2025-05-05T09:49:44.829Z] Running initial analytics update on startup...
+[2025-05-05T09:49:44.830Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T09:49:44.831Z] Start time: 5/5/2025, 3:19:44 PM
+[2025-05-05T09:49:44.832Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T09:49:44.832Z] Date range: Today only (2025-05-05)
+[2025-05-05T09:49:44.832Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T09:49:44.833Z] Max buffer size: 50MB
+[2025-05-05T09:49:44.834Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T09:49:44.849Z] Scheduler started. Next run scheduled for: Tue May 06 2025 15:19:00 GMT+0530 (India Standard Time)
+[2025-05-05T09:49:44.851Z] Script will run daily at 15:19
+[2025-05-05T10:05:51.067Z] Analytics update completed successfully at 3:35:51 PM
+[2025-05-05T10:05:51.069Z] Total execution time: 16.9 minutes (1014 seconds)
+[2025-05-05T10:05:51.069Z] Output: Starting Group Analytics Processing at 3:18:58 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_excel_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching cu...
+[2025-05-05T10:05:52.995Z] Analytics update completed successfully at 3:35:52 PM
+[2025-05-05T10:05:52.996Z] Total execution time: 16.9 minutes (1013 seconds)
+[2025-05-05T10:05:52.996Z] Output: Starting Group Analytics Processing at 3:19:01 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_excel_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching cu...
+[2025-05-05T10:06:30.541Z] Script stderr: Error handling existing data: Quota exceeded for quota metric 'Read requests' and limit 'Read requests per minute per user' of service 'sheets.googleapis.com' for consumer 'project_number:964200803890'.. Will proceed with update anyway.
+
+[2025-05-05T10:06:30.542Z] Analytics update completed successfully at 3:36:30 PM
+[2025-05-05T10:06:30.543Z] Total execution time: 16.8 minutes (1006 seconds)
+[2025-05-05T10:06:30.543Z] Output: Starting Group Analytics Processing at 3:19:46 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Service account authentication successful
+Verifying access to folder: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+Successfully verified access to folder "Automation_daily_excel_updates" (1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r)
+
+=== Fetching Customer Groups ===
+[API CALL] Fetching customer groups from: https://api.sproutsocial.com/v1/2426451/metadata/customer/groups
+[API CALL] Fetching cu...
+[2025-05-05T10:33:07.917Z] Scheduler stopping...
+[2025-05-05T10:38:46.181Z] Scheduler set to run DAILY at 15:19
+[2025-05-05T10:38:46.182Z] Running initial analytics update on startup...
+[2025-05-05T10:38:46.182Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T10:38:46.183Z] Start time: 5/5/2025, 4:08:46 PM
+[2025-05-05T10:38:46.183Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T10:38:46.184Z] Date range: Today only (2025-05-05)
+[2025-05-05T10:38:46.184Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T10:38:46.184Z] Max buffer size: 50MB
+[2025-05-05T10:38:46.185Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T10:38:46.193Z] Scheduler started. Next run scheduled for: Tue May 06 2025 15:19:00 GMT+0530 (India Standard Time)
+[2025-05-05T10:38:46.194Z] Script will run daily at 15:19
+[2025-05-05T10:38:52.034Z] Scheduler stopping...
+[2025-05-05T10:39:00.124Z] Scheduler set to run DAILY at 7:00
+[2025-05-05T10:39:00.125Z] Running initial analytics update on startup...
+[2025-05-05T10:39:00.125Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T10:39:00.126Z] Start time: 5/5/2025, 4:09:00 PM
+[2025-05-05T10:39:00.126Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T10:39:00.126Z] Date range: Today only (2025-05-05)
+[2025-05-05T10:39:00.127Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T10:39:00.127Z] Max buffer size: 50MB
+[2025-05-05T10:39:00.127Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T10:39:00.136Z] Scheduler started. Next run scheduled for: Tue May 06 2025 07:00:00 GMT+0530 (India Standard Time)
+[2025-05-05T10:39:00.136Z] Script will run daily at 7:00
+[2025-05-05T10:39:10.335Z] Scheduler stopping...

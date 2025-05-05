@@ -14,7 +14,6 @@ const HEADERS = [
   'Profile Name',
   'Network ID',
   'Profile ID',
-  'Added On',
   'Lifetime Followers Count',
   'Net Follower Growth',
   'Total Impressions',
@@ -98,25 +97,12 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
       : 0;
     
-    // Get current timestamp for the 'Added On' column - use ISO format with local time
-    const now = new Date();
-    const currentTimestamp = now.toLocaleString('en-US', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    });
-    
     return [
       date,                                                 // Date
       profileData ? profileData.network_type : '',            // Network Type
       profileData ? profileData.name : '',                    // Profile Name
       profileData ? profileData.network_id : '',              // Network ID
       dataPoint.dimensions.customer_profile_id || '',         // Profile ID
-      currentTimestamp,                                       // Added On
       safeNumber(metrics['lifetime_snapshot.followers_count']), // Lifetime Followers Count
       safeNumber(metrics['net_follower_growth']),             // Net Follower Growth
       safeNumber(metrics['impressions']),                     // Total Impressions
