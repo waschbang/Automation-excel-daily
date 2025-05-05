@@ -1223,3 +1223,31 @@ Successfully verified access to folder "Automation_daily_excel_updates" (1usYEd9
 [2025-05-05T10:39:00.136Z] Scheduler started. Next run scheduled for: Tue May 06 2025 07:00:00 GMT+0530 (India Standard Time)
 [2025-05-05T10:39:00.136Z] Script will run daily at 7:00
 [2025-05-05T10:39:10.335Z] Scheduler stopping...
+[2025-05-05T11:03:35.341Z] Scheduler set to run DAILY at 15:19
+[2025-05-05T11:03:35.343Z] Running initial analytics update on startup...
+[2025-05-05T11:03:35.344Z] 
+=== SCHEDULER: STARTING ANALYTICS UPDATE ===
+[2025-05-05T11:03:35.345Z] Start time: 5/5/2025, 4:33:35 PM
+[2025-05-05T11:03:35.346Z] Folder ID: 1usYEd9TeNI_2gapA-dLK4y27zvvWJO8r
+[2025-05-05T11:03:35.347Z] Date range: Today only (2025-05-05)
+[2025-05-05T11:03:35.348Z] Script path: C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js
+[2025-05-05T11:03:35.349Z] Max buffer size: 50MB
+[2025-05-05T11:03:35.350Z] 
+=== EXECUTION STARTING ===
+[2025-05-05T11:03:35.366Z] Scheduler started. Next run scheduled for: Tue May 06 2025 15:19:00 GMT+0530 (India Standard Time)
+[2025-05-05T11:03:35.397Z] Script will run daily at 15:19
+[2025-05-05T11:03:38.449Z] Script stderr: Service account authentication failed: invalid_grant: Invalid JWT Signature.
+Authentication with drive-credentials.json failed: invalid_grant: Invalid JWT Signature.
+Error in main process: All authentication methods failed
+Error: All authentication methods failed
+    at main (C:\Users\Laptop-1077\Desktop\trial\Automation-excel\simple-analytics.js:513:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+[2025-05-05T11:03:38.450Z] Analytics update completed successfully at 4:33:38 PM
+[2025-05-05T11:03:38.451Z] Total execution time: 0.1 minutes (3 seconds)
+[2025-05-05T11:03:38.451Z] Output: Starting Group Analytics Processing at 4:33:36 PM
+Authenticating with Google APIs...
+Using service account authentication...
+Falling back to drive-credentials.json...
+...
+[2025-05-05T11:03:47.206Z] Scheduler stopping...

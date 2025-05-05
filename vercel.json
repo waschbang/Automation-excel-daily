@@ -1,0 +1,18 @@
+{
+    "version": 2,
+    "builds": [
+      {
+        "src": "schedule-daily-update.js",
+        "use": "@vercel/node"
+      }
+    ],
+    "routes": [
+      {
+        "src": "/(.*)",
+        "dest": "/schedule-daily-update.js"
+      }
+    ],
+    "env": {
+      "NODE_ENV": "production"
+    }
+  }

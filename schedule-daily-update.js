@@ -14,8 +14,8 @@ const fs = require('fs');
 const CONFIG = {
   // Time to run the script daily (24-hour format)
   // Default: 6:00 AM - adjust as needed
-  hour: 7,
-  minute: 0,
+  hour: 15,
+  minute: 19,
   
   // Path to the main analytics script
   scriptPath: '',
