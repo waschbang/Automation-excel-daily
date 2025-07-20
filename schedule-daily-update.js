@@ -5,6 +5,9 @@
  * at a specified time each day. It uses the node-schedule package to handle scheduling.
  */
 
+console.log('SCRIPT STARTING: Sprout Analytics Scheduler');
+console.log('Current directory:', __dirname);
+
 const schedule = require('node-schedule');
 const { exec } = require('child_process');
 const path = require('path');
@@ -49,9 +52,15 @@ function log(message) {
   const logMessage = `[${timestamp}] ${message}`;
   
   console.log(logMessage);
+  console.log('DEBUG: Log message output to console');
   
-  // Append to log file
-  fs.appendFileSync(CONFIG.logPath, logMessage + '\n');
+  try {
+    // Append to log file
+    fs.appendFileSync(CONFIG.logPath, logMessage + '\n');
+    console.log('DEBUG: Successfully wrote to log file: ' + CONFIG.logPath);
+  } catch (error) {
+    console.error('ERROR: Failed to write to log file:', error.message);
+  }
 }
 
 /**

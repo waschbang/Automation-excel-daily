@@ -33,8 +33,8 @@ const facebook = require('./platforms/facebook');
 const twitter = require('./platforms/twitter');
 
 // API & Authentication
-const CUSTOMER_ID = "2426451";
-const SPROUT_API_TOKEN = "MjQyNjQ1MXwxNzQyNzk4MTc4fDQ0YmU1NzQ4LWI1ZDAtNDhkMi04ODQxLWE1YzM1YmI4MmNjNQ==";
+const CUSTOMER_ID = "2653573";
+const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2Y4LWRkMTE3ODRhNzBlNg==";
 
 // Get yesterday's date in YYYY-MM-DD format for more complete analytics data
 const getCurrentDate = () => {
