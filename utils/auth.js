@@ -2,11 +2,35 @@
  * Google API Authentication Utilities
  * 
  * This module provides authentication utilities for Google APIs using a service account.
- * It handles loading credentials from a service account key file and creating authenticated clients.
+ * It handles loading credentials from environment variables and creating authenticated clients.
  */
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
+const { getServiceAccountCredentials, getOAuthClientCredentials } = require('./env');
+
+/**
+ * Authenticate with Google APIs using environment variables
+ * @returns {Promise<{auth: any, drive: google.drive.v3.Drive, sheets: google.sheets.v4.Sheets}>}
+ */
+const authenticateWithEnv = async () => {
+  try {
+    console.log('Authenticating with environment variables...');
+    
+    // Get service account credentials from environment
+    const credentials = getServiceAccountCredentials();
+    
+    // Validate required fields
+    if (!credentials.client_email || !credentials.private_key) {
+      throw new Error('Missing required environment variables: GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY');
+    }
+    
+    return authenticateWithServiceAccountKey(credentials);
+  } catch (error) {
+    console.error(`Environment authentication error: ${error.message}`);
+    throw error;
+  }
+};
 
 /**
  * Authenticate with Google APIs using credentials
@@ -124,10 +148,10 @@ const authenticateWithOAuth = async (credentialsPath) => {
     const content = fs.readFileSync(credentialsPath, 'utf8');
     const credentials = JSON.parse(content);
     
-    // Get client credentials
-    const clientCredentials = credentials.installed || credentials.web;
-    if (!clientCredentials) {
-      throw new Error('Invalid OAuth credentials format');
+    // Get client credentials from environment variables instead of file
+    const clientCredentials = getOAuthClientCredentials();
+    if (!clientCredentials.client_id || !clientCredentials.client_secret) {
+      throw new Error('Missing required OAuth environment variables: GOOGLE_OAUTH_CLIENT_ID or GOOGLE_OAUTH_CLIENT_SECRET');
     }
     
     // Create OAuth client
@@ -226,6 +250,7 @@ const verifyFolderAccess = async (drive, folderId) => {
 };
 
 module.exports = {
+  authenticateWithEnv,
   authenticateWithServiceAccount,
   verifyFolderAccess
 };

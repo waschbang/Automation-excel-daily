@@ -14,6 +14,7 @@ const SCOPES = [
 
 // The file token.json stores the user's access and refresh tokens
 const TOKEN_PATH = path.join(__dirname, '../token.json');
+const { getOAuthClientCredentials } = require('./env');
 
 /**
  * Create an OAuth2 client with the given credentials
@@ -21,12 +22,8 @@ const TOKEN_PATH = path.join(__dirname, '../token.json');
  * @return {Promise<google.auth.OAuth2>}
  */
 async function authorize() {
-  // Hardcoded client credentials for simplicity
-  const credentials = {
-    client_id: '746176311500-0a7do8eqjqhl97ebqnmgpi0kvnt8gnmu.apps.googleusercontent.com',
-    client_secret: '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',
-    redirect_uris: ['http://localhost:3000/oauth2callback']
-  };
+  // Get credentials from environment variables
+  const credentials = getOAuthClientCredentials();
   
   const oAuth2Client = new google.auth.OAuth2(
     credentials.client_id,
