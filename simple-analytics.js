@@ -614,99 +614,24 @@ const main = async () => {
     const startTime = new Date();
     console.log(`Starting Group Analytics Processing at ${startTime.toLocaleTimeString()}`);
     
-    // Authenticate with Google APIs
-    console.log('Authenticating with Google APIs...');
-    
-    // Check for service account key file
-    const serviceAccountPath = path.join(__dirname, 'service-account-key.json');
-    const credentialsPath = path.join(__dirname, 'credentials.json');
-    const tokenPath = path.join(__dirname, 'token.json');
+    // Authenticate with Google APIs using environment variables
+    console.log('Authenticating with Google APIs using environment variables...');
     
     let auth, drive, sheets;
     
-    // Try to authenticate with service account first
-    if (fs.existsSync(serviceAccountPath)) {
-      try {
-        console.log('Using service account authentication...');
-        const serviceAccountKey = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-        
-        // Create a JWT client
-        auth = new google.auth.JWT(
-          serviceAccountKey.client_email,
-          null,
-          serviceAccountKey.private_key,
-          [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-          ]
-        );
-        
-        // Authorize the client
-        await auth.authorize();
-        console.log('Service account authentication successful');
-      } catch (authError) {
-        console.error(`Service account authentication failed: ${authError.message}`);
-        auth = null;
-      }
-    }
-    
-    // Fall back to OAuth if service account authentication failed
-    if (!auth && fs.existsSync(credentialsPath) && fs.existsSync(tokenPath)) {
-      try {
-        console.log('Falling back to OAuth authentication...');
-        const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
-        const token = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
-        
-        const clientCredentials = credentials.installed || credentials.web;
-        if (!clientCredentials) {
-          throw new Error('Invalid OAuth credentials format');
-        }
-        
-        // Create OAuth client
-        auth = new google.auth.OAuth2(
-          clientCredentials.client_id,
-          clientCredentials.client_secret,
-          clientCredentials.redirect_uris[0]
-        );
-        
-        // Set credentials from token file
-        auth.setCredentials(token);
-        console.log('OAuth authentication successful');
-      } catch (oauthError) {
-        console.error(`OAuth authentication failed: ${oauthError.message}`);
-        auth = null;
-      }
-    }
-    
-    // If all authentication methods failed, try using drive-credentials.json
-    if (!auth && fs.existsSync(path.join(__dirname, 'drive-credentials.json'))) {
-      try {
-        console.log('Falling back to drive-credentials.json...');
-        const driveCredentials = JSON.parse(fs.readFileSync(path.join(__dirname, 'drive-credentials.json'), 'utf8'));
-        
-        // Create a JWT client
-        auth = new google.auth.JWT(
-          driveCredentials.client_email,
-          null,
-          driveCredentials.private_key,
-          [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-          ]
-        );
-        
-        // Authorize the client
-        await auth.authorize();
-        console.log('Authentication with drive-credentials.json successful');
-      } catch (driveAuthError) {
-        console.error(`Authentication with drive-credentials.json failed: ${driveAuthError.message}`);
-        throw new Error('All authentication methods failed');
-      }
-    }
-    
-    // If all authentication methods failed, throw an error
-    if (!auth) {
-      throw new Error('All authentication methods failed');
+    try {
+      // Use the new environment variable authentication
+      const { authenticateWithEnv } = require('./utils/auth');
+      const authResult = await authenticateWithEnv();
+      auth = authResult.auth;
+      drive = authResult.drive;
+      sheets = authResult.sheets;
+      
+      console.log('Environment variable authentication successful');
+      console.log(`Authenticated as: ${auth.credentials?.client_email || 'OAuth user'}`);
+    } catch (authError) {
+      console.error(`Environment variable authentication failed: ${authError.message}`);
+      throw new Error('Authentication failed. Please check your .env file configuration.');
     }
     
     // Create Drive and Sheets clients
