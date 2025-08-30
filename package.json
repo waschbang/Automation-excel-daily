@@ -1,13 +1,14 @@
 {
   "name": "sprout-analytics-to-sheets",
   "version": "1.0.0",
-  "main": "schedule-daily-update.js",
+  "main": "api/cron.js",
   "scripts": {
     "start": "node schedule-daily-update.js",
     "scheduler": "node schedule-daily-update.js",
     "simple": "node simple-analytics.js",
     "april": "node sprout_april.js",
     "groups": "node group-analytics.js",
+    "vercel-build": "echo 'Build completed'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -16,11 +17,13 @@
     "analytics",
     "google-sheets",
     "cron",
-    "scheduler"
+    "scheduler",
+    "vercel",
+    "serverless"
   ],
   "author": "",
   "license": "ISC",
-  "description": "A tool to fetch analytics data from Sprout Social API and update Google Sheets with formatted data for different social media platforms. Includes a daily scheduler that runs scripts sequentially.",
+  "description": "A tool to fetch analytics data from Sprout Social API and update Google Sheets with formatted data for different social media platforms. Includes a daily scheduler that runs scripts sequentially on Vercel.",
   "dependencies": {
     "axios": "^1.9.0",
     "dotenv": "^17.2.1",
@@ -30,5 +33,8 @@
     "node-schedule": "^2.1.1",
     "opn": "^5.5.0",
     "path": "^0.12.7"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }

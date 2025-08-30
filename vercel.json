@@ -2,14 +2,18 @@
   "version": 2,
   "builds": [
     {
-      "src": "index.js",
+      "src": "api/cron.js",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
+      "src": "/cron",
+      "dest": "/api/cron.js"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/index.js"
+      "dest": "/api/cron.js"
     }
   ],
   "env": {
@@ -17,8 +21,8 @@
   },
   "crons": [
     {
-      "path": "/run",
-      "schedule": "0 7 * * *"
+      "path": "/cron",
+      "schedule": "40 23 * * *"
     }
   ]
 }

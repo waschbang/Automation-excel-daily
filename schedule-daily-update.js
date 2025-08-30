@@ -5,7 +5,7 @@
  * 1. simple-analytics.js (runs first)
  * 2. sprout_april.js (runs after first script completes)
  * 
- * Scheduled to run daily at 11:40 PM
+ * Scheduled to run daily at 11:40 PM IST (Indian Standard Time)
  */
 
 console.log('SCRIPT STARTING: Sprout Analytics Sequential Scheduler');
@@ -18,8 +18,8 @@ const fs = require('fs');
 
 // Configuration
 const CONFIG = {
-  // Time to run the scripts daily (24-hour format)
-  // 11:40 PM = 23:40
+  // Time to run the scripts daily in IST (Indian Standard Time)
+  // 11:40 PM IST = 23:40 IST
   hour: 23,
   minute: 40,
   
@@ -46,12 +46,43 @@ console.log(`First script: ${CONFIG.firstScriptPath}`);
 console.log(`Second script: ${CONFIG.secondScriptPath}`);
 
 /**
+ * Get current time in IST
+ * @returns {Date} Current time in IST
+ */
+function getCurrentTimeIST() {
+  const now = new Date();
+  // IST is UTC+5:30
+  const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+  const istTime = new Date(now.getTime() + istOffset);
+  return istTime;
+}
+
+/**
+ * Format time for display
+ * @param {Date} date - Date to format
+ * @returns {string} Formatted time string
+ */
+function formatTimeIST(date) {
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+}
+
+/**
  * Log a message to both console and log file
  * @param {string} message - Message to log
  */
 function log(message) {
   const timestamp = new Date().toISOString();
-  const logMessage = `[${timestamp}] ${message}`;
+  const istTime = formatTimeIST(new Date());
+  const logMessage = `[${timestamp}] [IST: ${istTime}] ${message}`;
   
   console.log(logMessage);
   
@@ -72,9 +103,10 @@ function log(message) {
 function executeScript(scriptPath, scriptName) {
   return new Promise((resolve) => {
     const startTime = Date.now();
+    const istStartTime = getCurrentTimeIST();
     log(`\n=== EXECUTING: ${scriptName} ===`);
     log(`Script path: ${scriptPath}`);
-    log(`Start time: ${new Date().toLocaleString()}`);
+    log(`Start time (IST): ${formatTimeIST(istStartTime)}`);
     
     const child = exec(`node "${scriptPath}"`, { 
       maxBuffer: 50 * 1024 * 1024 // 50MB buffer
@@ -130,8 +162,9 @@ function executeScript(scriptPath, scriptName) {
  */
 async function runSequentialAnalytics() {
   const overallStartTime = new Date();
+  const istStartTime = getCurrentTimeIST();
   log(`\n=== SCHEDULER: STARTING SEQUENTIAL ANALYTICS UPDATE ===`);
-  log(`Overall start time: ${overallStartTime.toLocaleString()}`);
+  log(`Overall start time (IST): ${formatTimeIST(istStartTime)}`);
   log(`Scripts will run in sequence: simple-analytics.js → sprout_april.js`);
   
   try {
@@ -165,12 +198,13 @@ async function runSequentialAnalytics() {
     
     // Overall completion
     const overallEndTime = new Date();
+    const istEndTime = getCurrentTimeIST();
     const overallExecutionTimeMs = overallEndTime - overallStartTime;
     const overallExecutionTimeSec = Math.round(overallExecutionTimeMs / 1000);
     const overallExecutionTimeMin = Math.round(overallExecutionTimeSec / 60 * 10) / 10;
     
     log(`\n=== SEQUENTIAL ANALYTICS UPDATE COMPLETED ===`);
-    log(`Overall completion time: ${overallEndTime.toLocaleString()}`);
+    log(`Overall completion time (IST): ${formatTimeIST(istEndTime)}`);
     log(`Total execution time: ${overallExecutionTimeMin} minutes (${overallExecutionTimeSec} seconds)`);
     log(`Both scripts executed successfully!`);
     
@@ -180,15 +214,22 @@ async function runSequentialAnalytics() {
   }
 }
 
-// Schedule the job to run daily at 11:40 PM
-const job = schedule.scheduleJob(`${CONFIG.minute} ${CONFIG.hour} * * *`, function() {
+// Create a rule for IST timezone (11:40 PM IST daily)
+const rule = new schedule.RecurrenceRule();
+rule.hour = CONFIG.hour;      // 23 (11 PM)
+rule.minute = CONFIG.minute;   // 40
+rule.tz = 'Asia/Kolkata';     // IST timezone
+
+// Schedule the job to run daily at 11:40 PM IST
+const job = schedule.scheduleJob(rule, function() {
   log(`\n=== SCHEDULED JOB TRIGGERED ===`);
-  log(`Running scheduled sequential analytics at ${new Date().toLocaleString()}`);
+  log(`Running scheduled sequential analytics at ${formatTimeIST(getCurrentTimeIST())} (IST)`);
   runSequentialAnalytics();
 });
 
-log(`Scheduler set to run DAILY at ${CONFIG.hour}:${CONFIG.minute.toString().padStart(2, '0')} (11:40 PM)`);
+log(`Scheduler set to run DAILY at ${CONFIG.hour}:${CONFIG.minute.toString().padStart(2, '0')} IST (11:40 PM IST)`);
 log(`Scripts will run in sequence: simple-analytics.js → sprout_april.js`);
+log(`Timezone: Asia/Kolkata (IST)`);
 
 // Run immediately on startup (optional)
 // Comment this out if you only want it to run at the scheduled time
@@ -197,9 +238,10 @@ runSequentialAnalytics();
 
 // Log that the scheduler is running
 const nextRun = job.nextInvocation();
+const nextRunIST = formatTimeIST(nextRun);
 log(`\nScheduler started successfully!`);
-log(`Next scheduled run: ${nextRun.toLocaleString()}`);
-log(`Scripts will run daily at 11:40 PM in sequence`);
+log(`Next scheduled run (IST): ${nextRunIST}`);
+log(`Scripts will run daily at 11:40 PM IST in sequence`);
 
 // Keep the process running
 process.on('SIGINT', function() {
