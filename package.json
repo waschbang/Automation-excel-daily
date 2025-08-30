@@ -1,9 +1,12 @@
 {
   "name": "sprout-analytics-to-sheets",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "schedule-daily-update.js",
   "scripts": {
     "start": "node schedule-daily-update.js",
+    "scheduler": "node schedule-daily-update.js",
+    "simple": "node simple-analytics.js",
+    "april": "node sprout_april.js",
     "groups": "node group-analytics.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,11 +14,13 @@
     "sprout",
     "social",
     "analytics",
-    "google-sheets"
+    "google-sheets",
+    "cron",
+    "scheduler"
   ],
   "author": "",
   "license": "ISC",
-  "description": "A tool to fetch analytics data from Sprout Social API and update Google Sheets with formatted data for different social media platforms",
+  "description": "A tool to fetch analytics data from Sprout Social API and update Google Sheets with formatted data for different social media platforms. Includes a daily scheduler that runs scripts sequentially.",
   "dependencies": {
     "axios": "^1.9.0",
     "dotenv": "^17.2.1",
