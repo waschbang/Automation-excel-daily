@@ -18,26 +18,17 @@ const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/simple-drive');
 const groupUtils = require('./utils/groups');
 const getCurrentDate = () => {
-  // Use the date from 2 days ago instead of today to ensure complete metrics
+  // Use yesterday's date instead of today to ensure complete metrics
   // Social media platforms often have a delay in reporting analytics
   const today = new Date();
   const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 2);
+  yesterday.setDate(yesterday.getDate() - 1);
   
   const year = yesterday.getFullYear();
   const month = String(yesterday.getMonth() + 1).padStart(2, '0');
   const day = String(yesterday.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-// Global write throttle to avoid Sheets per-minute write quota
-const WRITE_MIN_INTERVAL_MS = 2000; // ~30 writes/min
-let lastWriteAt = 0;
-async function throttleWrite() {
-  const now = Date.now();
-  const wait = Math.max(0, WRITE_MIN_INTERVAL_MS - (now - lastWriteAt));
-  if (wait > 0) await sleep(wait);
-  lastWriteAt = Date.now();
-}
 /**
  * Sleep for a specified duration
  * @param {number} ms - Milliseconds to sleep
@@ -56,11 +47,13 @@ const twitter = require('./platforms/twitter');
 const CUSTOMER_ID = "2653573";
 const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2Y4LWRkMTE3ODRhNzBlNg==";
 const FOLDER_ID = '1O0In92io6PksS-VEdr1lyD-VfVC6mVV3';
+// Target single spreadsheet to aggregate all data (provided by user)
+const TARGET_SPREADSHEET_ID = '1L1UeqX7U4Yj8WiCgyGeIvAzosdwwAxGzh8mgh7nZPCE';
 
-const START_DATE = getCurrentDate(); // Single-day window ending 2 days ago
-const END_DATE = getCurrentDate();   // Same as start for one-day update
-// const START_DATE = '2025-07-01'; // Single-day window ending 2 days ago
-// const END_DATE = '2025-08-28';
+// const START_DATE = getCurrentDate(); // Today's date as start date
+// const END_DATE = getCurrentDate();   // Today's date as end date
+const START_DATE = '2025-04-01';
+const END_DATE = '2025-08-26';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
@@ -87,173 +80,15 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       throw new Error('Invalid Google API clients provided');
     }
     
-    // Format current date and time for the spreadsheet title
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'); // MM-DD-YYYY
-    const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace('AM', 'am').replace('PM', 'pm'); // HH:MM am/pm format
-    
-    // Use just the group name as the base pattern for searching existing spreadsheets
-    const baseNamePattern = `${groupName}`;
-    console.log(`Group name: "${groupName}"`);
-    console.log(`Base name pattern for search: "${baseNamePattern}"`);
-    
-    // Use just the group name as the spreadsheet title
-    const spreadsheetTitle = `${groupName}`;
-    console.log(`Spreadsheet title: "${spreadsheetTitle}"`);
-    
-    // First check if a spreadsheet for this group already exists
-    console.log(`Looking for existing spreadsheet: "${baseNamePattern}"`);
-    
-    // List all spreadsheets in the folder first for debugging
+    // Use the single, user-provided spreadsheet for all groups and networks
+    const spreadsheetId = TARGET_SPREADSHEET_ID;
+    console.log(`Using target spreadsheet for all data: ${spreadsheetId}`);
+    // Verify we can access it
     try {
-      const listResponse = await drive.files.list({
-        q: `mimeType='application/vnd.google-apps.spreadsheet' and '${FOLDER_ID}' in parents and trashed=false`,
-        fields: 'files(id, name)',
-        spaces: 'drive',
-        includeItemsFromAllDrives: true,
-        supportsAllDrives: true
-      });
-      
-      const allFiles = listResponse.data.files;
-      if (allFiles && allFiles.length > 0) {
-        console.log(`\nAll spreadsheets in folder (showing first 5):`);
-        allFiles.slice(0, 5).forEach(file => {
-          console.log(`- "${file.name}" (${file.id})`);
-        });
-        if (allFiles.length > 5) {
-          console.log(`... and ${allFiles.length - 5} more`);
-        }
-      }
-    } catch (listError) {
-      console.error(`Error listing all spreadsheets: ${listError.message}`);
-    }
-    
-    // Now search for our specific spreadsheet
-    let spreadsheetId = await driveUtils.findExistingSpreadsheet(
-      drive,
-      baseNamePattern,
-      FOLDER_ID
-    );
-    
-    if (spreadsheetId) {
-      console.log(`Found existing spreadsheet: "${spreadsheetId}"`);
-      // No need to update title since we're using the same name format
-      console.log(`Using existing spreadsheet with name: "${spreadsheetTitle}"`);
-      
-      // No need to update the title since we're using the same name format
-      // Keeping the existing title to avoid unnecessary API calls
-    } else {
-      // No existing spreadsheet found - check if storage quota exceeded
-      console.log(`No existing spreadsheet found with name "${baseNamePattern}".`);
-      
-      // Check if we can find a similar/old spreadsheet to reuse instead of creating new
-      console.log(`Searching for reusable spreadsheet with similar name...`);
-      
-      try {
-        const listResponse = await drive.files.list({
-          q: `mimeType='application/vnd.google-apps.spreadsheet' and '${FOLDER_ID}' in parents and trashed=false`,
-          fields: 'files(id, name, modifiedTime)',
-          orderBy: 'modifiedTime desc',
-          pageSize: 100,
-          includeItemsFromAllDrives: true,
-          supportsAllDrives: true
-        });
-        
-        const allFiles = listResponse.data.files || [];
-        
-        // Look for any spreadsheet that might be for this group (case insensitive, partial match)
-        const groupNameLower = groupName.toLowerCase();
-        const possibleMatches = allFiles.filter(file => 
-          file.name.toLowerCase().includes(groupNameLower) || 
-          groupNameLower.includes(file.name.toLowerCase())
-        );
-        
-        if (possibleMatches.length > 0) {
-          const reusableSheet = possibleMatches[0];
-          console.log(`✓ Found reusable spreadsheet: "${reusableSheet.name}" (${reusableSheet.id})`);
-          console.log(`Using existing spreadsheet instead of creating new one due to storage constraints`);
-          spreadsheetId = reusableSheet.id;
-        } else {
-          // Global fallback: search across all Drive for a spreadsheet with this name
-          console.log(`No in-folder match. Performing global search for existing spreadsheet named "${baseNamePattern}"...`);
-          try {
-            const globalMatch = await driveUtils.findSpreadsheetByPattern(drive, baseNamePattern, null);
-            if (globalMatch && globalMatch.id) {
-              spreadsheetId = globalMatch.id;
-              console.log(`✓ Found spreadsheet outside target folder: "${globalMatch.name}" (${globalMatch.id}). Will reuse it.`);
-            }
-          } catch (globalSearchError) {
-            console.warn(`Global search failed: ${globalSearchError.message}`);
-          }
-
-          if (!spreadsheetId) {
-          // Try to create new spreadsheet with storage quota handling
-          console.log(`No reusable spreadsheet found. Attempting to create new one: "${spreadsheetTitle}"`);
-          console.log(`Target folder ID: ${FOLDER_ID}`);
-          
-          try {
-            // Try Drive API creation
-            const response = await drive.files.create({
-              resource: {
-                name: spreadsheetTitle,
-                parents: [FOLDER_ID],
-                mimeType: 'application/vnd.google-apps.spreadsheet'
-              },
-              fields: 'id, name, parents'
-            });
-            
-            spreadsheetId = response.data.id;
-            console.log(`✓ Created new spreadsheet: ${spreadsheetId}`);
-            
-            // Initialize with default sheet
-            try {
-              await sheets.spreadsheets.batchUpdate({
-                spreadsheetId,
-                resource: {
-                  requests: [{
-                    updateSheetProperties: {
-                      properties: {
-                        sheetId: 0,
-                        title: 'Summary'
-                      },
-                      fields: 'title'
-                    }
-                  }]
-                }
-              });
-              console.log(`✓ Initialized spreadsheet with default sheet`);
-            } catch (initError) {
-              console.warn(`⚠ Could not initialize sheet: ${initError.message}`);
-            }
-            
-          } catch (createError) {
-            if (createError.message.includes('quota') || createError.message.includes('storage')) {
-              console.error(`✗ Storage quota exceeded. Cannot create new spreadsheet.`);
-              console.error(`Solution: Clean up old spreadsheets or upgrade storage.`);
-              console.error(`Found ${allFiles.length} spreadsheets in folder - consider archiving old ones.`);
-              
-              return [{
-                groupId,
-                groupName,
-                status: `Skipped: Storage quota exceeded (${allFiles.length} files in folder)`
-              }];
-            } else {
-              throw createError;
-            }
-          }
-          }
-        }
-        
-      } catch (error) {
-        console.error(`✗ Failed to handle spreadsheet for group ${groupName}:`);
-        console.error(`Error: ${error.message}`);
-        
-        return [{
-          groupId,
-          groupName,
-          status: `Error: ${error.message}`
-        }];
-      }
+      await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
+      console.log('Verified access to target spreadsheet');
+    } catch (verifyErr) {
+      throw new Error(`Cannot access target spreadsheet ${spreadsheetId}: ${verifyErr.message}`);
     }
     
     // Group profiles by network type
@@ -361,64 +196,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
     // Always update data even if today's data exists
     console.log(`Fetching fresh data for ${getCurrentDate()} to update spreadsheet`);
     
-    // Check if we need to clear existing data for the date range to avoid duplicates
-    try {
-      // For each sheet, check if today's data exists and clear it if it does
-      for (const sheetName of createdSheets) {
-        console.log(`Checking for existing data in ${sheetName} sheet...`);
-        const existingValues = await sheets.spreadsheets.values.get({
-          spreadsheetId,
-          range: `${sheetName}!A:Z`
-        });
-
-        const rows = existingValues.data.values || [];
-        if (rows.length === 0) continue;
-
-        // Build a set of all dates in the configured range to be overwritten
-        const dateSet = buildDateSet(START_DATE, END_DATE);
-
-        // Find rows whose first cell (Date) matches any date in the range
-        const rowsToClear = [];
-        // Start at index 1 to skip header row (row 1)
-        for (let i = 1; i < rows.length; i++) {
-          const dateStr = (rows[i] && rows[i][0]) ? String(rows[i][0]).trim() : '';
-          if (dateSet.has(dateStr)) {
-            // Google Sheets rows are 1-indexed
-            rowsToClear.push(i + 1);
-          }
-        }
-
-        if (rowsToClear.length > 0) {
-          console.log(`Found ${rowsToClear.length} existing row(s) within ${START_DATE}..${END_DATE} in sheet "${sheetName}". Clearing them (batched).`);
-          // Coalesce consecutive rows into ranges and clear in a single batch call
-          rowsToClear.sort((a, b) => a - b);
-          const ranges = [];
-          let start = rowsToClear[0];
-          let prev = rowsToClear[0];
-          for (let i = 1; i < rowsToClear.length; i++) {
-            const curr = rowsToClear[i];
-            if (curr === prev + 1) {
-              prev = curr;
-            } else {
-              ranges.push(`${sheetName}!A${start}:AS${prev}`); // Clear columns A..AS (~45 cols)
-              start = curr;
-              prev = curr;
-            }
-          }
-          ranges.push(`${sheetName}!A${start}:AS${prev}`);
-
-          await sheets.spreadsheets.values.batchClear({
-            spreadsheetId,
-            resource: { ranges }
-          });
-          console.log(`Cleared ${ranges.length} range(s) in one request for sheet "${sheetName}".`);
-        } else {
-          console.log(`No existing rows to clear for ${sheetName} within ${START_DATE}..${END_DATE}.`);
-        }
-      }
-    } catch (error) {
-      console.warn(`Error handling existing data: ${error.message}. Will proceed with update anyway.`);
-    }
+    // Do not clear existing data across groups; rely on deduping logic inside per-network update functions
     
     // Fetch fresh data from API
     const analyticsData = await apiUtils.getAnalyticsData(
@@ -511,75 +289,29 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       }
     }
     
-    // Update sheets with data (sequential + throttled)
+    // Update sheets with data
+    const updatePromises = [];
+    
     for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
-      if (rows.length === 0) {
+      if (rows.length > 0) {
+        const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
+        if (createdSheets.includes(sheetName)) {
+          const module = networkModules[networkType];
+          if (module && module.updateSheet) {
+            console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
+            updatePromises.push(module.updateSheet(sheetsUtils, auth, spreadsheetId, rows));
+          } else {
+            console.log(`No updateSheet method found for ${networkType}`);
+          }
+        } else {
+          console.log(`Sheet ${sheetName} not created, skipping update`);
+        }
+      } else {
         console.log(`No rows to update for ${networkType}`);
-        continue;
       }
-
-      const sheetName = networkType.charAt(0).toUpperCase() + networkType.slice(1);
-      if (!createdSheets.includes(sheetName)) {
-        console.log(`Sheet ${sheetName} not created, skipping update`);
-        continue;
-      }
-
-      const module = networkModules[networkType];
-      if (!(module && module.updateSheet)) {
-        console.log(`No updateSheet method found for ${networkType}`);
-        continue;
-      }
-
-      console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
-      // Throttle before each write batch
-      await throttleWrite();
-
-      // Add backoff and capacity adjustments on retry
-      const retryWithBackoff = async (fn, {
-        maxAttempts = 7,
-        baseDelayMs = 30000,
-        onBeforeRetry = async () => {}
-      } = {}) => {
-        let attempt = 0;
-        while (true) {
-          try {
-            return await fn();
-          } catch (err) {
-            attempt++;
-            if (attempt >= maxAttempts) throw err;
-            await onBeforeRetry(attempt, err);
-            const delay = Math.round(baseDelayMs * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4));
-            console.warn(`Cooling down ${Math.round(delay/1000)}s before retry ${attempt}/${maxAttempts}...`);
-            await sleep(delay);
-          }
-        }
-      };
-
-      // Ensure capacity before writing
-      try {
-        await driveUtils.ensureSheetCapacity(sheets, spreadsheetId, sheetName, rows.length + 2000, 30);
-      } catch (capErr) {
-        console.warn(`Capacity check failed for ${sheetName}: ${capErr.message}`);
-      }
-
-      await retryWithBackoff(
-        async () => {
-          await throttleWrite();
-          return await module.updateSheet(sheetsUtils, auth, spreadsheetId, rows);
-        },
-        {
-          onBeforeRetry: async (attempt, err) => {
-            const msg = err?.message || '';
-            const code = err?.code || err?.response?.status;
-            if (code === 400 || /exceeds grid limits|grid limits/i.test(msg)) {
-              try {
-                await driveUtils.ensureSheetCapacity(sheets, spreadsheetId, sheetName, (rows.length + 2000) + attempt * 1000, 30);
-              } catch (_) {}
-            }
-          }
-        }
-      );
     }
+    
+    await Promise.all(updatePromises);
     
     console.log(`Completed processing for group ${groupName}`);
     console.log(`Spreadsheet URL: https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`);
@@ -812,7 +544,7 @@ const main = async () => {
           console.error(`Error processing group ${groupName}: ${error.message}`);
         }
         console.log(`Short delay before processing the next group...`);
-        await sleep(75 * 1000); // 75 seconds between groups to be kinder to API
+        await sleep(30 * 1000); // 30 seconds between groups instead of 5 minutes
       } else {
         console.log(`Skipping group ${groupName} (${groupId}) - no profiles found`);
       }

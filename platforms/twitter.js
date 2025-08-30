@@ -1,5 +1,5 @@
 /**
- * Twitter analytics processing module
+ * Twitter/X analytics processing module - CORRECTED VERSION
  */
 const { safeNumber } = require('../utils/api');
 
@@ -7,40 +7,38 @@ const { safeNumber } = require('../utils/api');
 const SHEET_NAME = 'Twitter';
 const PROFILE_ID = '6911594';
 
-// Sheet headers
+// Sheet headers - aligned with available X metrics
 const HEADERS = [
   'Date',
   'Network Type',
   'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Lifetime Followers Count',
-  'Net Follower Growth',
-  'Total Impressions',
-  'Total Media Views',
-  'Total Video Views',
-  'Total Reactions',
-  'Total Likes',
-  'Total Comments/Replies',
-  'Total Shares/Reposts',
-  'Total Content Clicks',
-  'Total Link Clicks',
-  'Total Other Content Clicks',
-  'Total Media Clicks',
-  'Total Hashtag Clicks',
-  'Total Expand Clicks',
-  'Total Profile Clicks',
-  'Other Engagement Actions',
-  'Total App Engagements',
-  'Total App Installs',
-  'Total App Opens',
-  'Posts Published Count',
-  'Posts by Post Type',
-  'Posts by Content Type',
-  'Total Engagement Actions',
-  'Engagement Rate % (per Impression)',
-  'Engagement Rate % (per Follower)',
-  'Click-Through Rate %'
+  'Lifetime Followers Count',      // lifetime_snapshot.followers_count ✓
+  'Net Follower Growth',           // net_follower_growth ✓
+  'Total Impressions',             // impressions ✓
+  'Total Media Views',             // post_media_views ✓ (Premium)
+  'Total Video Views',             // video_views ✓
+  'Total Reactions',               // reactions ✓
+  'Total Likes',                   // likes ✓
+  'Total Comments/Replies',        // comments_count ✓ (@replies)
+  'Total Shares/Reposts',          // shares_count ✓ (reposts)
+  'Total Content Clicks',          // post_content_clicks ✓
+  'Total Link Clicks',             // post_link_clicks ✓
+  'Total Other Content Clicks',    // post_content_clicks_other ✓
+  'Total Media Clicks',            // post_media_clicks ✓ (Premium)
+  'Total Hashtag Clicks',          // post_hashtag_clicks ✓ (Premium)
+  'Total Expand Clicks',           // post_detail_expand_clicks ✓ (Premium)
+  'Total Profile Clicks',          // post_profile_clicks ✓ (Premium)
+  'Other Engagement Actions',      // engagements_other ✓
+  'Total App Engagements',         // post_app_engagements ✓ (Premium)
+  'Total App Installs',            // post_app_installs ✓ (Premium)
+  'Total App Opens',               // post_app_opens ✓ (Premium)
+  'Posts Published Count',         // posts_sent_count ✓
+  'Posts by Post Type',            // posts_sent_by_post_type ✓ (Premium, JSON)
+  'Posts by Content Type',         // posts_sent_by_content_type ✓ (Premium, JSON)
+  'Total Engagement Actions',      // Calculated
+  'Engagement Rate % (per Impression)', // Calculated
+  'Engagement Rate % (per Follower)',   // Calculated
+  'Click-Through Rate %'           // Calculated
 ];
 
 /**
@@ -56,6 +54,16 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       return null;
     }
 
+    console.log('\n=== Twitter/X Data Point ===');
+    console.log('Profile Data:', {
+      name: profileData.name,
+      network_type: profileData.network_type,
+      network_id: profileData.network_id,
+      customer_profile_id: profileData.customer_profile_id
+    });
+    
+    console.log('\nRaw Metrics:', dataPoint.metrics);
+
     const metrics = dataPoint.metrics;
     const reportingPeriod = dataPoint.dimensions && 
       (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
@@ -67,20 +75,18 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     
     const date = new Date(reportingPeriod).toISOString().split('T')[0];
     
-    const followers = metrics["lifetime_snapshot.followers_count"] || 0;
-    const impressions = metrics["impressions"] || 0;
-    const postLinkClicks = metrics["post_link_clicks"] || 0;
-    const otherClicks = metrics["post_content_clicks_other"] || 0;
-    const otherEngagements = metrics["engagements_other"] || 0;
+    // Extract numeric values safely
+    const followers = safeNumber(metrics["lifetime_snapshot.followers_count"]);
+    const impressions = safeNumber(metrics["impressions"]);
+    const postLinkClicks = safeNumber(metrics["post_link_clicks"]);
+    const otherClicks = safeNumber(metrics["post_content_clicks_other"]);
+    const otherEngagements = safeNumber(metrics["engagements_other"]);
+    const likes = safeNumber(metrics["likes"]);
+    const comments = safeNumber(metrics["comments_count"]);
+    const shares = safeNumber(metrics["shares_count"]);
     
     // Calculate total engagement actions (Sprout's default Engagements calculation for Twitter/X)
-    const engagements = 
-      parseFloat(metrics["likes"] || 0) + 
-      parseFloat(metrics["comments_count"] || 0) +  // Comments/Replies on Twitter
-      parseFloat(metrics["shares_count"] || 0) +    // Shares/Reposts on Twitter
-      parseFloat(postLinkClicks) + 
-      parseFloat(otherClicks) +
-      parseFloat(otherEngagements);
+    const engagements = likes + comments + shares + postLinkClicks + otherClicks + otherEngagements;
     
     // Calculate engagement rate as percentage of followers
     const engagementRatePerFollower = followers > 0 
@@ -96,43 +102,60 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     const clickThroughRate = impressions > 0
       ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
       : 0;
-    
-    return [
-      date,                                                 // Date
+
+    // Build the row with correct metric mapping
+    const row = [
+      date,                                                    // Date
       profileData ? profileData.network_type : '',            // Network Type
       profileData ? profileData.name : '',                    // Profile Name
-      profileData ? profileData.network_id : '',              // Network ID
-      dataPoint.dimensions.customer_profile_id || '',         // Profile ID
-      safeNumber(metrics['lifetime_snapshot.followers_count']), // Lifetime Followers Count
+      followers,                                               // Lifetime Followers Count
       safeNumber(metrics['net_follower_growth']),             // Net Follower Growth
-      safeNumber(metrics['impressions']),                     // Total Impressions
-      safeNumber(metrics['post_media_views']),                // Total Media Views
+      impressions,                                            // Total Impressions
+      safeNumber(metrics['post_media_views']),                // Total Media Views (Premium)
       safeNumber(metrics['video_views']),                     // Total Video Views
       safeNumber(metrics['reactions']),                       // Total Reactions
-      safeNumber(metrics['likes']),                           // Total Likes
-      safeNumber(metrics['comments_count']),                  // Total Comments/Replies
-      safeNumber(metrics['shares_count']),                    // Total Shares/Reposts
+      likes,                                                  // Total Likes
+      comments,                                               // Total Comments/Replies
+      shares,                                                 // Total Shares/Reposts
       safeNumber(metrics['post_content_clicks']),             // Total Content Clicks
-      safeNumber(metrics['post_link_clicks']),                // Total Link Clicks
-      safeNumber(metrics['post_content_clicks_other']),       // Total Other Content Clicks
-      safeNumber(metrics['post_media_clicks']),               // Total Media Clicks
-      safeNumber(metrics['post_hashtag_clicks']),             // Total Hashtag Clicks
-      safeNumber(metrics['post_detail_expand_clicks']),       // Total Expand Clicks
-      safeNumber(metrics['post_profile_clicks']),             // Total Profile Clicks
-      safeNumber(metrics['engagements_other']),               // Other Engagement Actions
-      safeNumber(metrics['post_app_engagements']),            // Total App Engagements
-      safeNumber(metrics['post_app_installs']),               // Total App Installs
-      safeNumber(metrics['post_app_opens']),                  // Total App Opens
+      postLinkClicks,                                         // Total Link Clicks
+      otherClicks,                                            // Total Other Content Clicks
+      safeNumber(metrics['post_media_clicks']),               // Total Media Clicks (Premium)
+      safeNumber(metrics['post_hashtag_clicks']),             // Total Hashtag Clicks (Premium)
+      safeNumber(metrics['post_detail_expand_clicks']),       // Total Expand Clicks (Premium)
+      safeNumber(metrics['post_profile_clicks']),             // Total Profile Clicks (Premium)
+      otherEngagements,                                       // Other Engagement Actions
+      safeNumber(metrics['post_app_engagements']),            // Total App Engagements (Premium)
+      safeNumber(metrics['post_app_installs']),               // Total App Installs (Premium)
+      safeNumber(metrics['post_app_opens']),                  // Total App Opens (Premium)
       safeNumber(metrics['posts_sent_count']),                // Posts Published Count
-      safeNumber(metrics['posts_sent_by_post_type']),         // Posts by Post Type
-      safeNumber(metrics['posts_sent_by_content_type']),      // Posts by Content Type
-      engagements,                                            // Total Engagement Actions
+      // Handle JSON objects correctly
+      metrics['posts_sent_by_post_type'] ? JSON.stringify(metrics['posts_sent_by_post_type']) : '',
+      metrics['posts_sent_by_content_type'] ? JSON.stringify(metrics['posts_sent_by_content_type']) : '',
+      engagements,                                            // Total Engagement Actions (Calculated)
       engagementRatePerImpression,                            // Engagement Rate % (per Impression)
       engagementRatePerFollower,                              // Engagement Rate % (per Follower)
       clickThroughRate                                        // Click-Through Rate %
     ];
+
+    console.log('\n=== Twitter/X Row Mapping ===');
+    row.forEach((value, index) => {
+      console.log(`${index + 1}. ${HEADERS[index]}: ${value}`);
+    });
+
+    // Validate row length
+    if (row.length !== HEADERS.length) {
+      console.error(`❌ Row length mismatch! Headers: ${HEADERS.length}, Row: ${row.length}`);
+      return null;
+    }
+
+    console.log(`✅ Twitter/X row validation passed: ${row.length} values for ${HEADERS.length} headers`);
+    return row;
+
   } catch (err) {
     console.error('Error formatting Twitter analytics data:', err.message);
+    console.error('Data point:', dataPoint);
+    console.error('Profile data:', profileData);
     return null;
   }
 };

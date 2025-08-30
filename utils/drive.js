@@ -395,67 +395,99 @@ const createMockDriveClient = () => {
 };
 
 /**
- * Retry a function with exponential backoff
+ * Retry a function with exponential backoff and jitter
  * @param {Function} fn - Function to retry
  * @param {number} maxRetries - Maximum number of retries
  * @param {number} initialBackoff - Initial backoff time in ms
  * @param {string} operationName - Name of the operation for logging
  * @returns {Promise<any>} Result of the function or null if all retries fail
  */
-const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 5000, operationName = 'operation') => {
+const retryWithBackoff = async (fn, maxRetries = 7, initialBackoff = 8000, operationName = 'operation') => {
   let retries = 0;
   let backoffTime = initialBackoff;
-  
+
   while (retries <= maxRetries) {
     try {
       return await fn();
     } catch (error) {
       retries++;
-      
-      // Categorize error types for better handling
-      const isQuotaError = error.message && (error.message.includes('Quota exceeded') || 
-                                            error.message.includes('rateLimitExceeded') || 
-                                            error.message.includes('userRateLimitExceeded'));
-      const isAuthError = error.message && (error.message.includes('invalid_grant') || 
-                                          error.message.includes('Invalid JWT') || 
-                                          error.message.includes('auth') || 
-                                          error.message.includes('token'));
-      const isNetworkError = error.message && (error.message.includes('ECONNRESET') || 
-                                             error.message.includes('ETIMEDOUT') || 
-                                             error.message.includes('socket') || 
-                                             error.message.includes('network'));
-      
+
+      // Prefer status/reason when available
+      const status = error?.response?.status;
+      const reasons = JSON.stringify(error?.response?.data) || '';
+
+      const isQuotaError = status === 429 ||
+        (reasons && (
+          reasons.includes('rateLimitExceeded') ||
+          reasons.includes('userRateLimitExceeded') ||
+          reasons.includes('backendError') ||
+          reasons.includes('quota')
+        )) ||
+        (error.message && (
+          error.message.includes('Quota exceeded') ||
+          error.message.includes('Rate Limit')
+        ));
+
+      const isAuthError = status === 401 || status === 403 ||
+        (error.message && (
+          error.message.includes('invalid_grant') ||
+          error.message.includes('Invalid JWT') ||
+          error.message.includes('auth') ||
+          error.message.includes('token')
+        ));
+
+      const isNetworkError = !status && (
+        error.code === 'ECONNRESET' ||
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ENOTFOUND' ||
+        (error.message && (
+          error.message.includes('ECONNRESET') ||
+          error.message.includes('ETIMEDOUT') ||
+          error.message.includes('socket') ||
+          error.message.includes('network')
+        ))
+      );
+
       if (retries > maxRetries) {
         console.error(`Error ${operationName} after ${maxRetries} retries: ${error.message}`);
-        // Instead of throwing, return null to prevent script failure
         console.error(`Continuing script execution despite failure in ${operationName}`);
         return null;
       }
-      
+
+      // Respect Retry-After if provided
+      const retryAfterHeader = error?.response?.headers?.['retry-after'];
+      let waitMs = backoffTime;
+      if (retryAfterHeader) {
+        const retryAfterSec = parseInt(retryAfterHeader, 10);
+        if (!isNaN(retryAfterSec)) {
+          waitMs = Math.max(waitMs, retryAfterSec * 1000);
+        }
+      }
+
+      // Add jitter +/- 30%
+      const jitter = waitMs * (0.3 * (Math.random() - 0.5) * 2); // [-30%, +30%]
+      waitMs = Math.max(1000, Math.floor(waitMs + jitter));
+
       if (isQuotaError) {
-        // Longer backoff for quota errors
-        console.log(`Quota exceeded. Retrying ${operationName} in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
-        await sleep(backoffTime);
-        backoffTime *= 3; // Increased exponential backoff for quota errors
+        console.log(`Quota/rate limit. Retrying ${operationName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoffTime = Math.min(backoffTime * 2.5, 15 * 60 * 1000);
       } else if (isAuthError) {
-        // Auth errors need longer waits
-        console.log(`Authentication error. Retrying ${operationName} in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
-        await sleep(backoffTime);
-        backoffTime *= 2.5; // Significant backoff for auth errors
-      } else if (isNetworkError) {
-        // Network errors might resolve quickly
-        console.log(`Network error. Retrying ${operationName} in ${backoffTime/2000} seconds... (Attempt ${retries}/${maxRetries})`);
-        await sleep(backoffTime/2); // Shorter wait for network issues
-        backoffTime *= 1.5; // Moderate increase for network errors
+        console.log(`Auth error. Retrying ${operationName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoffTime = Math.min(backoffTime * 2, 15 * 60 * 1000);
+      } else if (isNetworkError || (status && status >= 500)) {
+        console.log(`Transient/server error (${status || 'network'}). Retrying ${operationName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoffTime = Math.min(backoffTime * 1.8, 10 * 60 * 1000);
       } else {
-        console.log(`Error ${operationName}: ${error.message}. Retrying in ${backoffTime/1000} seconds... (Attempt ${retries}/${maxRetries})`);
-        await sleep(backoffTime);
-        backoffTime *= 2; // Standard backoff for other errors
+        console.log(`Error ${operationName}: ${error.message}. Retrying in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoffTime = Math.min(backoffTime * 1.5, 10 * 60 * 1000);
       }
     }
   }
-  
-  // If we somehow get here (shouldn't happen due to the return in the if-block above)
+
   console.error(`Unexpected flow in retryWithBackoff for ${operationName}. Continuing script execution.`);
   return null;
 };
@@ -471,79 +503,55 @@ const retryWithBackoff = async (fn, maxRetries = 5, initialBackoff = 5000, opera
  */
 const createSpreadsheet = async (sheets, drive, title, folderId, refreshAuth) => {
   try {
-    console.log(`\n=== DRIVE API: Creating spreadsheet "${title}" ===`);
-    
-    // Refresh authentication if available
+    console.log(`\n=== DRIVE API: Creating spreadsheet "${title}" in folder ${folderId} ===`);
+
     if (refreshAuth) {
       try {
         await refreshAuth();
-        console.log('Authentication refreshed before creating spreadsheet');
+        console.log('Authentication refreshed before creating spreadsheet.');
       } catch (refreshError) {
         console.warn(`Warning: Could not refresh authentication: ${refreshError.message}`);
-        console.warn('Proceeding with existing token...');
       }
     }
-    
-    // Create a new spreadsheet
-    const createResponse = await retryWithBackoff(
+
+    const fileMetadata = {
+      name: title,
+      parents: [folderId],
+      mimeType: 'application/vnd.google-apps.spreadsheet',
+    };
+
+    const media = {
+      mimeType: 'application/vnd.google-apps.spreadsheet',
+      body: '' // Empty body for a new spreadsheet
+    };
+
+    const response = await retryWithBackoff(
       async () => {
-        return await sheets.spreadsheets.create({
-          resource: {
-            properties: {
-              title: title
-            }
-          }
+        return await drive.files.create({
+          resource: fileMetadata,
+          media: media,
+          fields: 'id'
         });
       },
-      5, // max retries
-      2000, // initial backoff in ms
-      'create spreadsheet'
+      8,
+      8000,
+      `creating spreadsheet "${title}"`
     );
-    
-    const spreadsheetId = createResponse.data.spreadsheetId;
-    console.log(`Created spreadsheet with ID: ${spreadsheetId}`);
-    
-    // Move the spreadsheet to the specified folder
-    if (folderId) {
-      console.log(`Moving spreadsheet to folder ${folderId}...`);
-      
-      let moveSuccess = false;
-      try {
-        // Refresh auth before moving file
-        if (refreshAuth) {
-          await refreshAuth();
-          console.log('Authentication refreshed before moving file');
-        }
-        
-        // Use a simpler approach to move the file to the folder
-        console.log(`Adding file ${spreadsheetId} to folder ${folderId}...`);
-        
-        // Add the file to the destination folder without removing from root
-        await drive.files.update({
-          fileId: spreadsheetId,
-          addParents: folderId,
-          fields: 'id, parents'
-        });
-        
-        console.log(`Successfully added spreadsheet to folder ${folderId}`);
-        moveSuccess = true;
-      } catch (moveError) {
-        console.error(`Error moving spreadsheet to folder: ${moveError.message}`);
-        console.error('This is non-critical - the spreadsheet was created but could not be moved to the specified folder.');
-        console.error(`You can manually move spreadsheet ID ${spreadsheetId} to folder ${folderId} in Google Drive.`);
-        
-        // Don't throw the error - we want to continue even if the move fails
-        // The spreadsheet is still usable, just not in the right folder
-      }
-      
-      if (moveSuccess) {
-        console.log(`Moved spreadsheet to folder ${folderId}`);
-      }
+
+    if (!response) {
+      console.error(`Could not create spreadsheet "${title}" after retries. Continuing without failing.`);
+      return null;
     }
-    
+
+    const spreadsheetId = response.data.id;
+    console.log(`Successfully created spreadsheet with ID: ${spreadsheetId} in folder ${folderId}`);
     return spreadsheetId;
+
   } catch (error) {
-    console.error(`Error creating spreadsheet: ${error.message}`);
+    console.error(`Failed to create spreadsheet for group: ${error.message}`);
+    if (error.errors) {
+        error.errors.forEach(err => console.error(`Google API Error: ${err.reason} - ${err.message}`));
+    }
     return null;
   }
 };

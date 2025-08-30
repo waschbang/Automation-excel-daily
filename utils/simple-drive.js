@@ -27,7 +27,9 @@ const findExistingSpreadsheet = async (drive, titlePattern, folderId) => {
     const response = await drive.files.list({
       q: query,
       fields: 'files(id, name)',
-      spaces: 'drive'
+      spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true
     });
     
     const files = response.data.files;
@@ -39,8 +41,17 @@ const findExistingSpreadsheet = async (drive, titlePattern, folderId) => {
     
     console.log(`Found ${files.length} spreadsheets in the folder.`);
     
-    // Find the first spreadsheet that matches the pattern
-    const matchingFile = files.find(file => file.name.includes(titlePattern));
+    // Find the first spreadsheet that matches the pattern strictly
+    // 1) exact match or 2) name starts with pattern (e.g., "Copy of <Group> ...")
+    let matchingFile = files.find(file => file.name === titlePattern);
+    if (!matchingFile) {
+      matchingFile = files.find(file => file.name.startsWith(titlePattern));
+    }
+    
+    // If still no match, fall back to includes for more flexible matching
+    if (!matchingFile) {
+      matchingFile = files.find(file => file.name.includes(titlePattern));
+    }
     
     if (matchingFile) {
       console.log(`Found matching spreadsheet: "${matchingFile.name}" (${matchingFile.id})`);
@@ -52,6 +63,66 @@ const findExistingSpreadsheet = async (drive, titlePattern, folderId) => {
   } catch (error) {
     console.error(`Error finding existing spreadsheet: ${error.message}`);
     return null;
+  }
+};
+
+/**
+ * Ensure a sheet has at least the requested number of rows/columns.
+ * Grows the grid if needed (no-op if already large enough).
+ * @param {google.sheets.v4.Sheets} sheets - Sheets client
+ * @param {string} spreadsheetId - Spreadsheet ID
+ * @param {string} sheetTitle - Sheet name
+ * @param {number} minRows - Minimum required rows
+ * @param {number} minCols - Minimum required columns
+ */
+const ensureSheetCapacity = async (sheets, spreadsheetId, sheetTitle, minRows, minCols) => {
+  try {
+    // Get sheet properties
+    const meta = await sheets.spreadsheets.get({
+      spreadsheetId,
+      includeGridData: false,
+    });
+
+    const sheet = (meta.data.sheets || []).find(s => s.properties && s.properties.title === sheetTitle);
+    if (!sheet) {
+      console.warn(`ensureSheetCapacity: Sheet "${sheetTitle}" not found in ${spreadsheetId}`);
+      return;
+    }
+
+    const props = sheet.properties || {};
+    const grid = props.gridProperties || {};
+    const currentRows = grid.rowCount || 1000;
+    const currentCols = grid.columnCount || 26;
+
+    const targetRows = Math.max(currentRows, minRows || currentRows);
+    const targetCols = Math.max(currentCols, minCols || currentCols);
+
+    if (targetRows === currentRows && targetCols === currentCols) {
+      return; // No change needed
+    }
+
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      resource: {
+        requests: [
+          {
+            updateSheetProperties: {
+              properties: {
+                sheetId: props.sheetId,
+                gridProperties: {
+                  rowCount: targetRows,
+                  columnCount: targetCols,
+                },
+              },
+              fields: 'gridProperties(rowCount,columnCount)'
+            }
+          }
+        ]
+      }
+    });
+    console.log(`Expanded sheet "${sheetTitle}" to rows=${targetRows}, cols=${targetCols}`);
+  } catch (error) {
+    console.warn(`ensureSheetCapacity failed for ${sheetTitle}: ${error.message}`);
   }
 };
 
@@ -163,6 +234,8 @@ const findSpreadsheetByPattern = async (drive, pattern, folderId) => {
       q: query,
       fields: 'files(id, name)',
       spaces: 'drive',
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
       orderBy: 'modifiedTime desc'
     });
     
@@ -213,5 +286,6 @@ module.exports = {
   createSpreadsheet,
   createSheet,
   findSpreadsheetByPattern,
-  updateSpreadsheetTitle
+  updateSpreadsheetTitle,
+  ensureSheetCapacity
 };

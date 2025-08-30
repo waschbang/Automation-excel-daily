@@ -33,7 +33,25 @@ const HEADERS = [
   'Total Engagement Actions',
   'Engagement Rate % (per Impression)',
   'Engagement Rate % (per Follower)',
-  'Click-Through Rate %'
+  'Click-Through Rate %',
+  // Additional MetricKeyAvailability (exact names requested)
+  'Followers',
+  'Followers By Job',
+  'Followers By Seniority',
+  // Skip 'Net Follower Growth' duplicate (already present above)
+  'Followers Gained',
+  'Organic Followers Gained',
+  'Paid Followers Gained',
+  // Skip 'Followers Lost' duplicate (already present above as exact)
+  'Impressions',
+  'Reach',
+  'Reactions',
+  'Comments',
+  'Shares',
+  'Post Clicks (All)',
+  'Posts Sent Count',
+  'Posts Sent By Post Type',
+  'Posts Sent By Content Type'
 ];
 
 /**
@@ -96,8 +114,8 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       ? parseFloat(((parseFloat(metrics["post_link_clicks"] || 0) + parseFloat(metrics["post_content_clicks"] || 0)) / impressions * 100).toFixed(2))
       : 0;
 
-    // Map the data in the correct order according to the sheet headers
-    const row = [
+    // Map the data in the correct order according to the existing sheet headers
+    const baseRow = [
       date,                                    // Date
       profileData.network_type,                // Network Type
       profileData.name,                        // Profile Name
@@ -123,6 +141,33 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       clickThroughRate                         // Click-Through Rate %
     ];
 
+    // Helper to stringify objects for breakdown metrics
+    const valueOrJson = (val) => {
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'object') return JSON.stringify(val);
+      return val;
+    };
+
+    // Additional MetricKeyAvailability values in exact order
+    const additional = [
+      safeNumber(metrics['lifetime_snapshot.followers_count']), // Followers
+      valueOrJson(metrics['followers_by_job_function']),        // Followers By Job (object/string)
+      valueOrJson(metrics['followers_by_seniority']),           // Followers By Seniority (object/string)
+      safeNumber(metrics['followers_gained']),                  // Followers Gained
+      safeNumber(metrics['followers_gained_organic']),          // Organic Followers Gained
+      safeNumber(metrics['followers_gained_paid']),             // Paid Followers Gained
+      safeNumber(metrics['impressions']),                       // Impressions
+      safeNumber(metrics['impressions_unique']),                // Reach
+      safeNumber(metrics['reactions']),                         // Reactions
+      safeNumber(metrics['comments_count']),                    // Comments
+      safeNumber(metrics['shares_count']),                      // Shares
+      safeNumber(metrics['post_content_clicks']),               // Post Clicks (All)
+      safeNumber(metrics['posts_sent_count']),                  // Posts Sent Count
+      valueOrJson(metrics['posts_sent_by_post_type']),          // Posts Sent By Post Type (object/string)
+      valueOrJson(metrics['posts_sent_by_content_type']),       // Posts Sent By Content Type (object/string)
+    ];
+
+    const row = [...baseRow, ...additional];
     console.log('Formatted LinkedIn row:', row);
     return row;
   } catch (error) {

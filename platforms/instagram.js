@@ -1,5 +1,5 @@
 /**
- * Instagram analytics processing module
+ * Instagram analytics processing module - FINAL CORRECTED VERSION
  */
 const { safeNumber } = require('../utils/api');
 
@@ -9,33 +9,42 @@ const INSTAGRAM_NETWORK_TYPES = ['instagram', 'fb_instagram_account'];
 // Sheet configuration
 const SHEET_NAME = 'Instagram';
 
-// Sheet headers
+// Sheet headers - EXACTLY matching your API response metrics
 const HEADERS = [
+  // Identifiers
   'Date',
   'Network Type',
   'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Total Impressions',
-  'Unique Impressions',
-  'Total Video Views',
-  'Total Reactions',
-  'Total Post Likes',
-  'Total Comments',
-  'Total Post Saves',
-  'Total Shares',
-  'Total Story Replies',
-  'Posts Published Count',
-  'Net Follower Growth',
-  'New Followers Gained',
-  'Followers Lost',
-  'Lifetime Following Count',
-  'Total Content Views',
-  'Lifetime Followers Count',
-  'Net Following Growth',
-  'Total Engagement Actions',
-  'Engagement Rate % (per Impression)',
-  'Engagement Rate % (per Follower)'
+  
+  // Follower Metrics
+  'Followers',                    // lifetime_snapshot.followers_count
+  'Net Follower Growth',          // net_follower_growth
+  'Followers Gained',             // followers_gained
+  'Followers Lost',               // followers_lost
+  'Following',                    // lifetime_snapshot.following_count
+  'Net Following Growth',         // net_following_growth
+  
+  // Impression/View Metrics
+  'Impressions',                  // impressions
+  'Paid Impressions',            // impressions_paid
+  'Organic Impressions',         // impressions_organic
+  'Total Impressions',           // impressions_total
+  'Reach',                       // impressions_unique
+  'Views',                       // views
+  'Post Video Views',            // video_views
+  
+  // Engagement Metrics
+  'Reactions',                   // reactions
+  'Likes',                      // likes
+  'Comments',                   // comments_count
+  'Saves',                      // saves
+  'Shares',                     // shares_count
+  'Story Replies',              // story_replies
+  
+  // Content Metrics
+  'Posts Sent Count',           // posts_sent_count
+  'Posts Sent By Post Type',    // posts_sent_by_post_type
+  'Posts Sent By Content Type'  // posts_sent_by_content_type
 ];
 
 /**
@@ -72,81 +81,62 @@ const formatAnalyticsData = (dataPoint, profileData) => {
     
     const metrics = dataPoint.metrics;
     const reportingPeriod = dataPoint.dimensions && (dataPoint.dimensions['reporting_period.by(day)'] || dataPoint.dimensions.reporting_period);
+    
     if (!reportingPeriod) {
       console.error('No reporting period found in dataPoint:', dataPoint);
       return null;
     }
+    
     const date = new Date(reportingPeriod).toISOString().split('T')[0];
-    
-    // Check for both 'saves' and 'post_saves' metrics as the API might return either
-    const savesMetric = metrics["post_saves"] !== undefined ? "post_saves" : "saves";
-    console.log(`Using ${savesMetric} for saves metric with value: ${metrics[savesMetric] || 0}`);
-    
-    // Check for both 'likes' and 'post_likes' metrics as the API might return either
-    const likesMetric = metrics["post_likes"] !== undefined ? "post_likes" : "likes";
-    console.log(`Using ${likesMetric} for likes metric with value: ${metrics[likesMetric] || 0}`);
-    
-    // Calculate total engagements using the correct metrics
-    const engagements = (
-      parseFloat(metrics[likesMetric] || 0) + 
-      parseFloat(metrics["comments_count"] || 0) + 
-      parseFloat(metrics["shares_count"] || 0) + 
-      parseFloat(metrics[savesMetric] || 0) + 
-      parseFloat(metrics["story_replies"] || 0)
-    );
 
-    const impressions = parseFloat(metrics["impressions"] || 0);
-    const followersCount = parseFloat(metrics["lifetime_snapshot.followers_count"] || 0);
-    
-    // Calculate engagement rates
-    const engagementRatePerImpression = impressions > 0 
-      ? parseFloat(((engagements / impressions) * 100).toFixed(2))
-      : 0;
-      
-    const engagementRatePerFollower = followersCount > 0 
-      ? parseFloat(((engagements / followersCount) * 100).toFixed(2))
-      : 0;
-
-    // Map the data in the correct order according to the metrics
+    // Build row with correct mapping to API response metrics
     const row = [
-      date,                                    // Date
-      profileData.network_type,                // Network Type
-      profileData.name,                        // Profile Name
-      profileData.network_id,                  // Network ID
-      profileData.customer_profile_id,         // Profile ID
-      safeNumber(metrics["impressions"]),             // Total Impressions
-      safeNumber(metrics["impressions_unique"]),      // Unique Impressions
-      safeNumber(metrics["video_views"]),             // Total Video Views
-      safeNumber(metrics["reactions"]),               // Total Reactions
-      metrics["post_likes"] !== undefined ? safeNumber(metrics["post_likes"]) : safeNumber(metrics["likes"]), // Total Post Likes
-      safeNumber(metrics["comments_count"]),          // Total Comments
-      metrics["post_saves"] !== undefined ? safeNumber(metrics["post_saves"]) : safeNumber(metrics["saves"]), // Total Post Saves
-      safeNumber(metrics["shares_count"]),            // Total Shares
-      safeNumber(metrics["story_replies"]),           // Total Story Replies
-      safeNumber(metrics["posts_sent_count"]),        // Posts Published Count
-      safeNumber(metrics["net_follower_growth"]),     // Net Follower Growth
-      safeNumber(metrics["followers_gained"]),        // New Followers Gained
-      safeNumber(metrics["followers_lost"]),          // Followers Lost
-      // Check for both standard and alternative following count metrics
-      metrics["following_count"] !== undefined ? 
-        safeNumber(metrics["following_count"]) : 
-        safeNumber(metrics["lifetime_snapshot.following_count"]), // Lifetime Following Count
+      // Basic Information
+      date,                                                         // Date
+      profileData.network_type,                                     // Network Type
+      profileData.name,                                            // Profile Name
       
-      // Check for both standard and alternative views metrics
-      metrics["post_views"] !== undefined ? 
-        safeNumber(metrics["post_views"]) : 
-        safeNumber(metrics["views"]),                   // Total Content Views
-      safeNumber(metrics["lifetime_snapshot.followers_count"]), // Lifetime Followers Count
-      safeNumber(metrics["net_following_growth"]),    // Net Following Growth
-      engagements,                             // Total Engagement Actions
-      engagementRatePerImpression,             // Engagement Rate % (per Impression)
-      engagementRatePerFollower                // Engagement Rate % (per Follower)
+      // Follower Metrics
+      safeNumber(metrics["lifetime_snapshot.followers_count"]),    // Followers
+      safeNumber(metrics["net_follower_growth"]),                  // Net Follower Growth
+      safeNumber(metrics["followers_gained"]),                     // Followers Gained
+      safeNumber(metrics["followers_lost"]),                       // Followers Lost
+      safeNumber(metrics["lifetime_snapshot.following_count"]),    // Following
+      safeNumber(metrics["net_following_growth"]),                 // Net Following Growth
+      
+      // Impression/View Metrics
+      safeNumber(metrics["impressions"]),                          // Impressions
+      safeNumber(metrics["impressions_paid"]),                     // Paid Impressions
+      safeNumber(metrics["impressions_organic"]),                  // Organic Impressions
+      safeNumber(metrics["impressions_total"]),                    // Total Impressions
+      safeNumber(metrics["impressions_unique"]),                   // Reach
+      safeNumber(metrics["views"]),                                // Views
+      safeNumber(metrics["video_views"]),                          // Post Video Views
+      
+      // Engagement Metrics
+      safeNumber(metrics["reactions"]),                            // Reactions
+      safeNumber(metrics["likes"]),                                // Likes
+      safeNumber(metrics["comments_count"]),                       // Comments
+      safeNumber(metrics["saves"]),                                // Saves
+      safeNumber(metrics["shares_count"]),                         // Shares
+      safeNumber(metrics["story_replies"]),                        // Story Replies
+      
+      // Content Metrics
+      safeNumber(metrics["posts_sent_count"]),                     // Posts Sent Count
+      metrics["posts_sent_by_post_type"] ? JSON.stringify(metrics["posts_sent_by_post_type"]) : '',
+      metrics["posts_sent_by_content_type"] ? JSON.stringify(metrics["posts_sent_by_content_type"]) : ''
     ];
 
-    console.log('\nFormatted Row:', row.map((value, index) => ({
-      header: HEADERS[index],
-      value: value
-    })));
+    console.log('\nFormatted Row:');
+    row.forEach((value, index) => {
+      console.log(`${HEADERS[index]}: ${value}`);
+    });
+
+    // Validate row length
+    if (row.length !== HEADERS.length) {
+      console.error(`Row length mismatch! Headers: ${HEADERS.length}, Row: ${row.length}`);
+      return null;
+    }
 
     return row;
   } catch (error) {

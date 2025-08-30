@@ -29,8 +29,8 @@ const getCurrentDate = () => {
   const day = String(yesterday.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-// Global write throttle to avoid Sheets per-minute write quota
-const WRITE_MIN_INTERVAL_MS = 2000; // ~30 writes/min
+// Global write throttle (Sheets write limits are per user per minute). Adjust if needed.
+const WRITE_MIN_INTERVAL_MS = 2000; // ~30 writes/min max
 let lastWriteAt = 0;
 async function throttleWrite() {
   const now = Date.now();
@@ -45,6 +45,32 @@ async function throttleWrite() {
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Retry helper with exponential backoff and jitter
+async function retryWithBackoff(fn, {
+  maxAttempts = 5,
+  baseDelayMs = 15000, // 15s base to be conservative
+  onBeforeRetry = async () => {}
+} = {}) {
+  let attempt = 0;
+  while (true) {
+    try {
+      return await fn();
+    } catch (err) {
+      attempt++;
+      const msg = err?.message || '';
+      const code = err?.code || err?.response?.status;
+      const isQuota = code === 429 || /quota exceeded|rate limit/i.test(msg);
+      if (!isQuota || attempt >= maxAttempts) throw err;
+
+      // cooldown then retry
+      const delay = Math.round(baseDelayMs * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4));
+      console.warn(`Quota hit. Cooling down for ${Math.round(delay/1000)}s before retry ${attempt}/${maxAttempts}...`);
+      await onBeforeRetry(attempt, err);
+      await sleep(delay);
+    }
+  }
+}
+
 // Import platform modules
 const instagram = require('./platforms/instagram');
 const youtube = require('./platforms/youtube');
@@ -55,11 +81,12 @@ const twitter = require('./platforms/twitter');
 // API & Authentication
 const CUSTOMER_ID = "2653573";
 const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2Y4LWRkMTE3ODRhNzBlNg==";
-const FOLDER_ID = '1O0In92io6PksS-VEdr1lyD-VfVC6mVV3';
+const FOLDER_ID = '13XPLx5l1LuPeJL2Ue03ZztNQUsNgNW06';
 
-const START_DATE = getCurrentDate(); // Single-day window ending 2 days ago
-const END_DATE = getCurrentDate();   // Same as start for one-day update
-// const START_DATE = '2025-07-01'; // Single-day window ending 2 days ago
+const date = getCurrentDate();
+const START_DATE = date; // Single-day window ending 2 days ago
+const END_DATE = date;   // Same as start for one-day update
+// const START_DATE = '2025-04-01';
 // const END_DATE = '2025-08-28';
 const DESCRIPTION = '';
 
@@ -92,12 +119,12 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
     const formattedDate = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'); // MM-DD-YYYY
     const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace('AM', 'am').replace('PM', 'pm'); // HH:MM am/pm format
     
-    // Use just the group name as the base pattern for searching existing spreadsheets
-    const baseNamePattern = `${groupName}`;
+    // Search only for sheets that are copies: names like "Copy of <Group Name>..."
+    const baseNamePattern = `Copy of ${groupName}`;
     console.log(`Group name: "${groupName}"`);
     console.log(`Base name pattern for search: "${baseNamePattern}"`);
     
-    // Use just the group name as the spreadsheet title
+    // Keep the spreadsheet title as the pure group name
     const spreadsheetTitle = `${groupName}`;
     console.log(`Spreadsheet title: "${spreadsheetTitle}"`);
     
@@ -390,7 +417,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
 
         if (rowsToClear.length > 0) {
           console.log(`Found ${rowsToClear.length} existing row(s) within ${START_DATE}..${END_DATE} in sheet "${sheetName}". Clearing them (batched).`);
-          // Coalesce consecutive rows into ranges and clear in a single batch call
+          // Coalesce consecutive rows into ranges, then clear with a single batchClear
           rowsToClear.sort((a, b) => a - b);
           const ranges = [];
           let start = rowsToClear[0];
@@ -400,7 +427,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
             if (curr === prev + 1) {
               prev = curr;
             } else {
-              ranges.push(`${sheetName}!A${start}:AS${prev}`); // Clear columns A..AS (~45 cols)
+              ranges.push(`${sheetName}!A${start}:AS${prev}`); // A..AS = 45 columns
               start = curr;
               prev = curr;
             }
@@ -511,7 +538,8 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       }
     }
     
-    // Update sheets with data (sequential + throttled)
+    // Update sheets with data
+    // Sequential updates with throttling to avoid Sheets write-per-minute quota
     for (const [networkType, rows] of Object.entries(rowsByNetwork)) {
       if (rows.length === 0) {
         console.log(`No rows to update for ${networkType}`);
@@ -531,43 +559,24 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       }
 
       console.log(`Updating ${sheetName} sheet with ${rows.length} rows`);
-      // Throttle before each write batch
-      await throttleWrite();
-
-      // Add backoff and capacity adjustments on retry
-      const retryWithBackoff = async (fn, {
-        maxAttempts = 7,
-        baseDelayMs = 30000,
-        onBeforeRetry = async () => {}
-      } = {}) => {
-        let attempt = 0;
-        while (true) {
-          try {
-            return await fn();
-          } catch (err) {
-            attempt++;
-            if (attempt >= maxAttempts) throw err;
-            await onBeforeRetry(attempt, err);
-            const delay = Math.round(baseDelayMs * Math.pow(2, attempt - 1) * (0.8 + Math.random() * 0.4));
-            console.warn(`Cooling down ${Math.round(delay/1000)}s before retry ${attempt}/${maxAttempts}...`);
-            await sleep(delay);
-          }
-        }
-      };
-
-      // Ensure capacity before writing
       try {
         await driveUtils.ensureSheetCapacity(sheets, spreadsheetId, sheetName, rows.length + 2000, 30);
       } catch (capErr) {
         console.warn(`Capacity check failed for ${sheetName}: ${capErr.message}`);
       }
 
+      // Throttle before each write
+      await throttleWrite();
+
       await retryWithBackoff(
         async () => {
+          // Additional throttle inside retries
           await throttleWrite();
           return await module.updateSheet(sheetsUtils, auth, spreadsheetId, rows);
         },
         {
+          maxAttempts: 7,
+          baseDelayMs: 30000, // 30s base backoff for 429s
           onBeforeRetry: async (attempt, err) => {
             const msg = err?.message || '';
             const code = err?.code || err?.response?.status;
@@ -644,6 +653,7 @@ const main = async () => {
         // Authorize the client
         await auth.authorize();
         console.log('Service account authentication successful');
+        console.log(`Authenticated as service account: ${serviceAccountKey.client_email}`);
       } catch (authError) {
         console.error(`Service account authentication failed: ${authError.message}`);
         auth = null;
@@ -715,12 +725,13 @@ const main = async () => {
     
     const googleClients = { auth, drive, sheets };
     
-    // Verify access to the folder
+    // Verify access to the folder; if not found under current principal, try OAuth fallback
     try {
       console.log(`Verifying access to folder: ${FOLDER_ID}`);
       const folderResponse = await drive.files.get({
         fileId: FOLDER_ID,
-        fields: 'id,name,capabilities(canEdit)'
+        fields: 'id,name,capabilities(canEdit)',
+        supportsAllDrives: true
       });
       
       const folder = folderResponse.data;
@@ -732,7 +743,41 @@ const main = async () => {
       }
     } catch (folderError) {
       console.warn(`Warning: Could not verify folder access: ${folderError.message}`);
-      // Continue anyway, as the folder might still be accessible
+      // If the current auth is a service account and OAuth creds exist, try OAuth fallback
+      const hasOAuthFiles = fs.existsSync(credentialsPath) && fs.existsSync(tokenPath);
+      const isJwt = auth && typeof auth.createScopedRequired === 'function';
+      if (hasOAuthFiles) {
+        try {
+          console.log('Retrying with OAuth credentials because the folder was not accessible under current account...');
+          const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
+          const token = JSON.parse(fs.readFileSync(tokenPath, 'utf8'));
+          const clientCredentials = credentials.installed || credentials.web;
+          if (!clientCredentials) {
+            throw new Error('Invalid OAuth credentials format');
+          }
+          const oauth = new google.auth.OAuth2(
+            clientCredentials.client_id,
+            clientCredentials.client_secret,
+            clientCredentials.redirect_uris[0]
+          );
+          oauth.setCredentials(token);
+          // Swap clients to OAuth
+          auth = oauth;
+          drive = google.drive({ version: 'v3', auth });
+          sheets = google.sheets({ version: 'v4', auth });
+          // Retry folder verification
+          const retryResp = await drive.files.get({
+            fileId: FOLDER_ID,
+            fields: 'id,name,capabilities(canEdit)',
+            supportsAllDrives: true
+          });
+          const folder = retryResp.data;
+          console.log(`Successfully verified access to folder with OAuth as "${folder.name}" (${folder.id})`);
+        } catch (oauthSwapErr) {
+          console.warn(`OAuth fallback failed or still cannot access folder: ${oauthSwapErr.message}`);
+          // Continue; subsequent calls may still work if access is eventually granted
+        }
+      }
     }
     
     // Fetch all groups

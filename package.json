@@ -23,6 +23,7 @@
     "fs": "^0.0.1-security",
     "googleapis": "^148.0.0",
     "node-schedule": "^2.1.1",
+    "opn": "^5.5.0",
     "path": "^0.12.7"
   }
 }

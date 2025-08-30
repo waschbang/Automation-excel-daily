@@ -4,6 +4,63 @@
 const axios = require('axios');
 
 /**
+ * Execute an axios request with exponential backoff and jitter
+ * @param {Function} fn - async function returning axios response
+ * @param {string} opName - operation name for logging
+ * @param {number} maxRetries
+ * @param {number} initialBackoff
+ */
+const requestWithRetry = async (fn, opName = 'request', maxRetries = 8, initialBackoff = 4000) => {
+  let retries = 0;
+  let backoff = initialBackoff;
+  while (retries <= maxRetries) {
+    try {
+      return await fn();
+    } catch (error) {
+      retries++;
+      const status = error?.response?.status;
+      const dataStr = JSON.stringify(error?.response?.data || {});
+      const isRateOrQuota = status === 429 || (dataStr && (dataStr.includes('rateLimit') || dataStr.includes('quota')));
+      const isAuth = status === 401 || status === 403;
+      const isServer = status >= 500 || !status; // network or 5xx
+
+      if (retries > maxRetries) {
+        console.error(`[Sprout] ${opName} failed after ${maxRetries} retries: ${error.message}`);
+        return null; // never throw, to keep scripts running
+      }
+
+      let waitMs = backoff;
+      const retryAfter = error?.response?.headers?.['retry-after'];
+      if (retryAfter && !isNaN(parseInt(retryAfter, 10))) {
+        waitMs = Math.max(waitMs, parseInt(retryAfter, 10) * 1000);
+      }
+      // add jitter +/-25%
+      const jitter = waitMs * (0.25 * (Math.random() - 0.5) * 2);
+      waitMs = Math.max(750, Math.floor(waitMs + jitter));
+
+      if (isRateOrQuota) {
+        console.log(`[Sprout] Rate/quota hit. Retrying ${opName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoff = Math.min(backoff * 2.2, 10 * 60 * 1000);
+      } else if (isAuth) {
+        console.log(`[Sprout] Auth error. Retrying ${opName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoff = Math.min(backoff * 2.0, 10 * 60 * 1000);
+      } else if (isServer) {
+        console.log(`[Sprout] Server/network error (${status || 'network'}). Retrying ${opName} in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoff = Math.min(backoff * 1.8, 10 * 60 * 1000);
+      } else {
+        console.log(`[Sprout] Error ${opName}: ${error.message}. Retrying in ${Math.round(waitMs/1000)}s (attempt ${retries}/${maxRetries})`);
+        await sleep(waitMs);
+        backoff = Math.min(backoff * 1.5, 10 * 60 * 1000);
+      }
+    }
+  }
+  return null;
+};
+
+/**
  * Get headers for Sprout Social API requests
  * @param {string} token - API token
  * @returns {Object} Headers object with authorization and content type
@@ -23,7 +80,11 @@ const getSproutHeaders = (token) => ({
 const getProfileData = async (metadataUrl, token, profileIds) => {
   try {
     console.log('[API CALL] Fetching profile metadata');
-    const response = await axios.get(metadataUrl, { headers: getSproutHeaders(token) });
+    const response = await requestWithRetry(
+      () => axios.get(metadataUrl, { headers: getSproutHeaders(token) }),
+      'fetch profile metadata'
+    );
+    if (!response) return [];
     
     if (!response.data || !response.data.data) {
       throw new Error('Invalid metadata response');
@@ -116,6 +177,7 @@ if (daysDiff > 365) {
           `reporting_period.in(${startDate}...${effectiveEndDate})`
         ],
         "metrics": [
+          // Followers/Fans
           "lifetime_snapshot.followers_count",
           "net_follower_growth",
           "followers_gained",
@@ -127,11 +189,14 @@ if (daysDiff > 365) {
           "fans_gained_organic",
           "fans_gained_paid",
           "fans_lost",
+
+          // Facebook Impressions/Reach/Post Impressions
           "impressions",
           "impressions_organic",
           "impressions_viral",
           "impressions_nonviral",
           "impressions_paid",
+          "impressions_total",
           "tab_views",
           "tab_views_login",
           "tab_views_logout",
@@ -145,13 +210,24 @@ if (daysDiff > 365) {
           "impressions_viral_unique",
           "impressions_nonviral_unique",
           "impressions_paid_unique",
+
+          // Engagement and clicks
           "reactions",
           "comments_count",
           "shares_count",
+          "post_content_clicks",
           "post_link_clicks",
           "post_content_clicks_other",
+          "post_media_clicks",
+          "post_hashtag_clicks",
+          "post_detail_expand_clicks",
+          "post_profile_clicks",
+          "engagements_other",
           "profile_actions",
           "post_engagements",
+
+          // Video metrics (FB)
+          "post_media_views",
           "video_views",
           "video_views_organic",
           "video_views_paid",
@@ -160,17 +236,37 @@ if (daysDiff > 365) {
           "video_views_repeat",
           "video_view_time",
           "video_views_unique",
+          "video_views_30s_complete",
+          "video_views_30s_complete_organic",
+          "video_views_30s_complete_paid",
+          "video_views_30s_complete_autoplay",
+          "video_views_30s_complete_click_to_play",
+          "video_views_30s_complete_repeat",
+          "video_views_30s_complete_unique",
+          "video_views_partial",
+          "video_views_partial_organic",
+          "video_views_partial_paid",
+          "video_views_partial_autoplay",
+          "video_views_partial_click_to_play",
+          "video_views_partial_repeat",
+
+          // Posts/Content
           "posts_sent_count",
           "posts_sent_by_post_type",
           "posts_sent_by_content_type",
-          "calculated_engagements",
-          "saves",
-          "post_saves",
+
+          // Twitter App interaction metrics (Premium)
+          "post_app_engagements",
+          "post_app_installs",
+          "post_app_opens",
+
+          // Instagram-specific additions used in platform mapping
+          "lifetime_snapshot.following_count",
+          "net_following_growth",
           "likes",
-          "post_likes",
+          "saves",
           "views",
-          "post_views",
-          "following_count"
+          "story_replies"
         ],
         "page": 1
       };
@@ -178,7 +274,16 @@ if (daysDiff > 365) {
       console.log(`Making API request for profile ID: ${profileId}`);
       console.log(`Using POST to ${analyticsUrl}`);
       
-      const response = await axios.post(analyticsUrl, payload, { headers: getSproutHeaders(token) });
+      const response = await requestWithRetry(
+        () => axios.post(analyticsUrl, payload, { headers: getSproutHeaders(token) }),
+        `analytics profile ${profileId}`
+      );
+      if (!response) {
+        console.warn(`Skipping profile ${profileId} due to repeated request failures.`);
+        // Add protective cool-down before next profile
+        await sleep(1500 + Math.floor(Math.random()*1000));
+        continue;
+      }
       
       if (response.data && response.data.data && response.data.data.length > 0) {
         console.log(`Received ${response.data.data.length} data points for profile ${profileId}`);
@@ -187,9 +292,10 @@ if (daysDiff > 365) {
         console.warn(`No analytics data found for profile ${profileId}`);
       }
       
-      // Minimal delay between requests - just enough to avoid rate limiting
-      console.log(`Minimal delay before processing the next profile...`);
-      await sleep(100); // 100ms delay instead of 300ms
+      // Safer delay between requests to avoid rate limiting (with jitter)
+      const delayMs = 1200 + Math.floor(Math.random() * 800);
+      console.log(`Delay ${delayMs}ms before next profile to avoid rate limits...`);
+      await sleep(delayMs);
       
     } catch (error) {
       console.error(`Error getting analytics data for profile ${profileId}: ${error.message}`);
@@ -240,6 +346,7 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
       `reporting_period.between(${startDate},${effectiveEndDate})`
     ],
     "metrics": [
+      // Followers/Fans
       "lifetime_snapshot.followers_count",
       "net_follower_growth",
       "followers_gained",
@@ -251,11 +358,14 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
       "fans_gained_organic",
       "fans_gained_paid",
       "fans_lost",
+
+      // Facebook Impressions/Reach/Post Impressions
       "impressions",
       "impressions_organic",
       "impressions_viral",
       "impressions_nonviral",
       "impressions_paid",
+      "impressions_total",
       "tab_views",
       "tab_views_login",
       "tab_views_logout",
@@ -269,13 +379,24 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
       "impressions_viral_unique",
       "impressions_nonviral_unique",
       "impressions_paid_unique",
+
+      // Engagement and clicks
       "reactions",
       "comments_count",
       "shares_count",
+      "post_content_clicks",
       "post_link_clicks",
       "post_content_clicks_other",
+      "post_media_clicks",
+      "post_hashtag_clicks",
+      "post_detail_expand_clicks",
+      "post_profile_clicks",
+      "engagements_other",
       "profile_actions",
       "post_engagements",
+
+      // Video metrics (FB)
+      "post_media_views",
       "video_views",
       "video_views_organic",
       "video_views_paid",
@@ -284,10 +405,37 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
       "video_views_repeat",
       "video_view_time",
       "video_views_unique",
+      "video_views_30s_complete",
+      "video_views_30s_complete_organic",
+      "video_views_30s_complete_paid",
+      "video_views_30s_complete_autoplay",
+      "video_views_30s_complete_click_to_play",
+      "video_views_30s_complete_repeat",
+      "video_views_30s_complete_unique",
+      "video_views_partial",
+      "video_views_partial_organic",
+      "video_views_partial_paid",
+      "video_views_partial_autoplay",
+      "video_views_partial_click_to_play",
+      "video_views_partial_repeat",
+
+      // Posts/Content
       "posts_sent_count",
       "posts_sent_by_post_type",
       "posts_sent_by_content_type",
-      "calculated_engagements"
+
+      // Twitter App interaction metrics (Premium)
+      "post_app_engagements",
+      "post_app_installs",
+      "post_app_opens",
+
+      // Instagram-specific additions used in platform mapping
+      "lifetime_snapshot.following_count",
+      "net_following_growth",
+      "likes",
+      "saves",
+      "views",
+      "story_replies"
     ],
     "page": 1
   };
@@ -327,8 +475,10 @@ const getAnalyticsDataWithJsonPayload = async (analyticsUrl, token, startDate, e
     
     // If we hit a rate limit, wait before continuing
     if (error.response && (error.response.status === 429 || error.response.status === 403)) {
-      console.log('Rate limit hit, waiting 5 seconds before continuing...');
-      await sleep(5000); // Further reduced to 5 seconds for faster processing
+      const retryAfter = error.response.headers?.['retry-after'];
+      const waitMs = retryAfter && !isNaN(parseInt(retryAfter,10)) ? parseInt(retryAfter,10)*1000 : 8000 + Math.floor(Math.random()*4000);
+      console.log(`Rate limit hit, cooling down for ${Math.round(waitMs/1000)}s before continuing...`);
+      await sleep(waitMs);
     }
   }
   
@@ -357,6 +507,7 @@ module.exports = {
   getProfileData,
   getAnalyticsData,
   getAnalyticsDataWithJsonPayload,
+  requestWithRetry,
   sleep,
   safeNumber
 };

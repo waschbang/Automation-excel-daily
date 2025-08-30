@@ -6,64 +6,72 @@ const { safeNumber } = require('../utils/api');
 // Sheet configuration
 const SHEET_NAME = 'Facebook';
 
-// Sheet headers
+// Sheet headers (identifiers + exact order requested)
 const HEADERS = [
   'Date',
   'Network Type',
   'Profile Name',
-  'Network ID',
-  'Profile ID',
-  'Lifetime Followers Count',
+  'Followers',
   'Net Follower Growth',
-  'New Followers Gained',
-  'New Followers Gained (Organic)',
-  'New Followers Gained (Paid)',
-  'Followers Lost',
-  'Lifetime Fans Count',
-  'New Fans Gained',
-  'New Fans Gained (Organic)',
-  'New Fans Gained (Paid)',
-  'Fans Lost',
-  'Total Impressions',
+  'Followers Gained',
+  'Organic Followers Gained',
+  'Paid Followers Gained',
+  'Page Unlikes',
+  'Fans',
+  'Page Likes',
+  'Organic Page Likes',
+  'Paid Page Likes',
+  'Page Unlikes (Fans)',
+  'Impressions',
   'Organic Impressions',
   'Viral Impressions',
-  'Non-Viral Impressions',
+  'Non-viral Impressions',
   'Paid Impressions',
-  'Total Tab Views',
-  'Tab Views (Logged In)',
-  'Tab Views (Logged Out)',
-  'Total Post Impressions',
-  'Post Impressions (Organic)',
-  'Post Impressions (Viral)',
-  'Post Impressions (Non-Viral)',
-  'Post Impressions (Paid)',
-  'Unique Impressions',
-  'Unique Organic Impressions',
-  'Unique Viral Impressions',
-  'Unique Non-Viral Impressions',
-  'Unique Paid Impressions',
-  'Total Reactions',
-  'Total Comments',
-  'Total Shares',
-  'Total Link Clicks',
-  'Total Other Content Clicks',
-  'Total Profile Actions',
-  'Total Post Engagements',
-  'Total Video Views',
-  'Video Views (Organic)',
-  'Video Views (Paid)',
-  'Video Views (Autoplay)',
-  'Video Views (Click-to-Play)',
-  'Video Views (Repeat)',
-  'Total Video View Time',
+  'Total Impressions',
+  'Page Tab Views',
+  'Logged In Page Tab Views',
+  'Logged Out Page Tab Views',
+  'Post Impressions',
+  'Organic Post Impressions',
+  'Viral Post Impressions',
+  'Non-viral Post Impressions',
+  'Paid Post Impressions',
+  'Reach',
+  'Organic Reach',
+  'Viral Reach',
+  'Non-viral Reach',
+  'Paid Reach',
+  'Reactions',
+  'Comments',
+  'Shares',
+  'Post Link Clicks',
+  'Other Post Clicks',
+  'Page Actions',
+  'Post Engagements',
+  'Video Views',
+  'Organic Video Views',
+  'Paid Video Views',
+  'Autoplay Video Views',
+  'Click to Play Video Views',
+  'Replayed Video Views',
+  'Video View Time',
   'Unique Video Views',
-  'Posts Published Count',
-  'Posts by Post Type',
-  'Posts by Content Type',
-  'Total Engagement Actions',
-  'Engagement Rate % (per Impression)',
-  'Engagement Rate % (per Follower)',
-  'Click-Through Rate %',
+  'Full Video Views',
+  'Organic Full Video Views',
+  'Paid Full Video Views',
+  'Autoplay Full Video Views',
+  'Click to Play Full Video Views',
+  'Replayed Full Video Views',
+  'Unique Full Video Views',
+  'Partial Video Views',
+  'Organic Partial Video Views',
+  'Paid Partial Video Views',
+  'Autoplay Partial Video Views',
+  'Click to Play Partial Video Views',
+  'Replayed Partial Video Views',
+  'Posts Sent Count',
+  'Posts Sent By Post Type',
+  'Posts Sent By Content Type'
 ];
 
 /**
@@ -113,64 +121,75 @@ const formatAnalyticsData = (dataPoint, profileData) => {
       ? parseFloat(((postLinkClicks / impressions) * 100).toFixed(2))
       : 0;
     
-    return [
+    // Build row exactly per requested headers
+    const row = [
       date,                                                // Date
-      profileData ? profileData.network_type : '',           // Network Type
-      profileData ? profileData.name : '',                   // Profile Name
-      profileData ? profileData.network_id : '',             // Network ID
-      dataPoint.dimensions.customer_profile_id || '',        // Profile ID
-      safeNumber(metrics['lifetime_snapshot.followers_count']), // Lifetime Followers Count
-      safeNumber(metrics['net_follower_growth']),            // Net Follower Growth
-      safeNumber(metrics['followers_gained']),               // New Followers Gained
-      safeNumber(metrics['followers_gained_organic']),       // New Followers Gained (Organic)
-      safeNumber(metrics['followers_gained_paid']),          // New Followers Gained (Paid)
-      safeNumber(metrics['followers_lost']),                 // Followers Lost
-      safeNumber(metrics['lifetime_snapshot.fans_count']),   // Lifetime Fans Count
-      safeNumber(metrics['fans_gained']),                    // New Fans Gained
-      safeNumber(metrics['fans_gained_organic']),            // New Fans Gained (Organic)
-      safeNumber(metrics['fans_gained_paid']),               // New Fans Gained (Paid)
-      safeNumber(metrics['fans_lost']),                      // Fans Lost
-      safeNumber(metrics['impressions']),                    // Total Impressions
-      safeNumber(metrics['impressions_organic']),            // Organic Impressions
-      safeNumber(metrics['impressions_viral']),              // Viral Impressions
-      safeNumber(metrics['impressions_nonviral']),           // Non-Viral Impressions
-      safeNumber(metrics['impressions_paid']),               // Paid Impressions
-      safeNumber(metrics['tab_views']),                      // Total Tab Views
-      safeNumber(metrics['tab_views_login']),                // Tab Views (Logged In)
-      safeNumber(metrics['tab_views_logout']),               // Tab Views (Logged Out)
-      safeNumber(metrics['post_impressions']),               // Total Post Impressions
-      safeNumber(metrics['post_impressions_organic']),       // Post Impressions (Organic)
-      safeNumber(metrics['post_impressions_viral']),         // Post Impressions (Viral)
-      safeNumber(metrics['post_impressions_nonviral']),      // Post Impressions (Non-Viral)
-      safeNumber(metrics['post_impressions_paid']),          // Post Impressions (Paid)
-      safeNumber(metrics['impressions_unique']),             // Unique Impressions
-      safeNumber(metrics['impressions_organic_unique']),     // Unique Organic Impressions
-      safeNumber(metrics['impressions_viral_unique']),       // Unique Viral Impressions
-      safeNumber(metrics['impressions_nonviral_unique']),    // Unique Non-Viral Impressions
-      safeNumber(metrics['impressions_paid_unique']),        // Unique Paid Impressions
-      safeNumber(metrics['reactions']),                      // Total Reactions
-      safeNumber(metrics['comments_count']),                 // Total Comments
-      safeNumber(metrics['shares_count']),                   // Total Shares
-      safeNumber(metrics['post_link_clicks']),               // Total Link Clicks
-      safeNumber(metrics['post_content_clicks_other']),      // Total Other Content Clicks
-      safeNumber(metrics['profile_actions']),                // Total Profile Actions
-      safeNumber(metrics['post_engagements']),               // Total Post Engagements
-      safeNumber(metrics['video_views']),                    // Total Video Views
-      safeNumber(metrics['video_views_organic']),            // Video Views (Organic)
-      safeNumber(metrics['video_views_paid']),               // Video Views (Paid)
-      safeNumber(metrics['video_views_autoplay']),           // Video Views (Autoplay)
-      safeNumber(metrics['video_views_click_to_play']),      // Video Views (Click-to-Play)
-      safeNumber(metrics['video_views_repeat']),             // Video Views (Repeat)
-      safeNumber(metrics['video_view_time']),                // Total Video View Time
-      safeNumber(metrics['video_views_unique']),             // Unique Video Views
-      safeNumber(metrics['posts_sent_count']),               // Posts Published Count
-      safeNumber(metrics['posts_sent_by_post_type']),        // Posts by Post Type
-      safeNumber(metrics['posts_sent_by_content_type']),     // Posts by Content Type
-      engagements,                                           // Total Engagement Actions
-      engagementRatePerImpression,                           // Engagement Rate % (per Impression)
-      engagementRatePerFollower,                             // Engagement Rate % (per Follower)
-      clickThroughRate,                                      // Click-Through Rate %
+      profileData ? profileData.network_type : '',         // Network Type
+      profileData ? profileData.name : '',                 // Profile Name
+      safeNumber(metrics['lifetime_snapshot.followers_count']), // Followers
+      safeNumber(metrics['net_follower_growth']),          // Net Follower Growth
+      safeNumber(metrics['followers_gained']),             // Followers Gained
+      safeNumber(metrics['followers_gained_organic']),     // Organic Followers Gained
+      safeNumber(metrics['followers_gained_paid']),        // Paid Followers Gained
+      safeNumber(metrics['followers_lost']),               // Page Unlikes
+      safeNumber(metrics['lifetime_snapshot.fans_count']), // Fans
+      safeNumber(metrics['fans_gained']),                  // Page Likes
+      safeNumber(metrics['fans_gained_organic']),          // Organic Page Likes
+      safeNumber(metrics['fans_gained_paid']),             // Paid Page Likes
+      safeNumber(metrics['fans_lost']),                    // Page Unlikes (Fans)
+      safeNumber(metrics['impressions']),                  // Impressions
+      safeNumber(metrics['impressions_organic']),          // Organic Impressions
+      safeNumber(metrics['impressions_viral']),            // Viral Impressions
+      safeNumber(metrics['impressions_nonviral']),         // Non-viral Impressions
+      safeNumber(metrics['impressions_paid']),             // Paid Impressions
+      safeNumber(metrics['impressions_total']),            // Total Impressions
+      safeNumber(metrics['tab_views']),                    // Page Tab Views
+      safeNumber(metrics['tab_views_login']),              // Logged In Page Tab Views
+      safeNumber(metrics['tab_views_logout']),             // Logged Out Page Tab Views
+      safeNumber(metrics['post_impressions']),             // Post Impressions
+      safeNumber(metrics['post_impressions_organic']),     // Organic Post Impressions
+      safeNumber(metrics['post_impressions_viral']),       // Viral Post Impressions
+      safeNumber(metrics['post_impressions_nonviral']),    // Non-viral Post Impressions
+      safeNumber(metrics['post_impressions_paid']),        // Paid Post Impressions
+      safeNumber(metrics['impressions_unique']),           // Reach
+      safeNumber(metrics['impressions_organic_unique']),   // Organic Reach
+      safeNumber(metrics['impressions_viral_unique']),     // Viral Reach
+      safeNumber(metrics['impressions_nonviral_unique']),  // Non-viral Reach
+      safeNumber(metrics['impressions_paid_unique']),      // Paid Reach
+      safeNumber(metrics['reactions']),                    // Reactions
+      safeNumber(metrics['comments_count']),               // Comments
+      safeNumber(metrics['shares_count']),                 // Shares
+      safeNumber(metrics['post_link_clicks']),             // Post Link Clicks
+      safeNumber(metrics['post_content_clicks_other']),    // Other Post Clicks
+      safeNumber(metrics['profile_actions']),              // Page Actions
+      safeNumber(metrics['post_engagements']),             // Post Engagements
+      safeNumber(metrics['video_views']),                  // Video Views
+      safeNumber(metrics['video_views_organic']),          // Organic Video Views
+      safeNumber(metrics['video_views_paid']),             // Paid Video Views
+      safeNumber(metrics['video_views_autoplay']),         // Autoplay Video Views
+      safeNumber(metrics['video_views_click_to_play']),    // Click to Play Video Views
+      safeNumber(metrics['video_views_repeat']),           // Replayed Video Views
+      safeNumber(metrics['video_view_time']),              // Video View Time
+      safeNumber(metrics['video_views_unique']),           // Unique Video Views
+      safeNumber(metrics['video_views_30s_complete']),     // Full Video Views
+      safeNumber(metrics['video_views_30s_complete_organic']), // Organic Full Video Views
+      safeNumber(metrics['video_views_30s_complete_paid']),    // Paid Full Video Views
+      safeNumber(metrics['video_views_30s_complete_autoplay']), // Autoplay Full Video Views
+      safeNumber(metrics['video_views_30s_complete_click_to_play']), // Click to Play Full Video Views
+      safeNumber(metrics['video_views_30s_complete_repeat']), // Replayed Full Video Views
+      safeNumber(metrics['video_views_30s_complete_unique']), // Unique Full Video Views
+      safeNumber(metrics['video_views_partial']),          // Partial Video Views
+      safeNumber(metrics['video_views_partial_organic']),  // Organic Partial Video Views
+      safeNumber(metrics['video_views_partial_paid']),     // Paid Partial Video Views
+      safeNumber(metrics['video_views_partial_autoplay']), // Autoplay Partial Video Views
+      safeNumber(metrics['video_views_partial_click_to_play']), // Click to Play Partial Video Views
+      safeNumber(metrics['video_views_partial_repeat']),   // Replayed Partial Video Views
+      safeNumber(metrics['posts_sent_count']),             // Posts Sent Count
+      metrics['posts_sent_by_post_type'] ? JSON.stringify(metrics['posts_sent_by_post_type']) : '', // Posts Sent By Post Type
+      metrics['posts_sent_by_content_type'] ? JSON.stringify(metrics['posts_sent_by_content_type']) : '' // Posts Sent By Content Type
     ];
+
+    return row;
   } catch (err) {
     console.error('Error formatting Facebook analytics data:', err.message);
     return null;
