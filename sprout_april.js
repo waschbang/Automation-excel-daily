@@ -84,10 +84,10 @@ const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2
 const FOLDER_ID = '13XPLx5l1LuPeJL2Ue03ZztNQUsNgNW06';
 
 const date = getCurrentDate();
-const START_DATE = date; // Single-day window ending 2 days ago
-const END_DATE = date;   // Same as start for one-day update
-// const START_DATE = '2025-04-01';
-// const END_DATE = '2025-08-28';
+// const START_DATE = date; // Single-day window ending 2 days ago
+// const END_DATE = date;   // Same as start for one-day update
+const START_DATE = '2025-08-29';
+const END_DATE = '2025-09-01';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
@@ -380,6 +380,40 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       }
       return set;
     }
+
+    // Normalize any Google Sheets date cell value to ISO YYYY-MM-DD
+    function normalizeSheetDateCell(value) {
+      if (value == null) return '';
+      const raw = String(value).trim();
+
+      // Case 1: Already ISO
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+
+      // Case 2: Google serial number or numeric-like string
+      const asNum = Number(raw);
+      if (!Number.isNaN(asNum) && raw !== '') {
+        // Google Sheets serial date: days since 1899-12-30
+        // Note: Excel leap year bug day is already handled by using 1899-12-30 as epoch
+        const epoch = new Date(Date.UTC(1899, 11, 30));
+        const ms = epoch.getTime() + Math.round(asNum) * 86400000;
+        const dt = new Date(ms);
+        const yyyy = dt.getUTCFullYear();
+        const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+        const dd = String(dt.getUTCDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      // Case 3: Parse any other string (e.g., 8/29/2025, 29-08-2025, 29 Aug 2025)
+      const parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) {
+        const yyyy = parsed.getFullYear();
+        const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+        const dd = String(parsed.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+      }
+
+      return '';
+    }
     
     // Fetch analytics data for all profiles in this group
     const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
@@ -408,16 +442,16 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
         const rowsToClear = [];
         // Start at index 1 to skip header row (row 1)
         for (let i = 1; i < rows.length; i++) {
-          const dateStr = (rows[i] && rows[i][0]) ? String(rows[i][0]).trim() : '';
-          if (dateSet.has(dateStr)) {
+          const normalized = normalizeSheetDateCell(rows[i] && rows[i][0]);
+          if (normalized && dateSet.has(normalized)) {
             // Google Sheets rows are 1-indexed
             rowsToClear.push(i + 1);
           }
         }
 
         if (rowsToClear.length > 0) {
-          console.log(`Found ${rowsToClear.length} existing row(s) within ${START_DATE}..${END_DATE} in sheet "${sheetName}". Clearing them (batched).`);
-          // Coalesce consecutive rows into ranges, then clear with a single batchClear
+          console.log(`Found ${rowsToClear.length} existing row(s) within ${START_DATE}..${END_DATE} in sheet "${sheetName}". Deleting them (batched).`);
+          // Coalesce consecutive rows into ranges (1-indexed), then delete as row dimension ranges (0-indexed)
           rowsToClear.sort((a, b) => a - b);
           const ranges = [];
           let start = rowsToClear[0];
@@ -427,18 +461,44 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
             if (curr === prev + 1) {
               prev = curr;
             } else {
-              ranges.push(`${sheetName}!A${start}:AS${prev}`); // A..AS = 45 columns
+              ranges.push([start, prev]);
               start = curr;
               prev = curr;
             }
           }
-          ranges.push(`${sheetName}!A${start}:AS${prev}`);
+          ranges.push([start, prev]);
 
-          await sheets.spreadsheets.values.batchClear({
-            spreadsheetId,
-            resource: { ranges }
-          });
-          console.log(`Cleared ${ranges.length} range(s) in one request for sheet "${sheetName}".`);
+          // Get sheetId for deleteDimension requests
+          const ss = await sheets.spreadsheets.get({ spreadsheetId, includeGridData: false });
+          const sheet = ss.data.sheets.find(s => s.properties.title === sheetName);
+          const sheetId = sheet?.properties?.sheetId;
+          if (sheetId == null) {
+            console.warn(`Could not resolve sheetId for "${sheetName}". Falling back to clearing values.`);
+            const a1Ranges = ranges.map(([s, e]) => `${sheetName}!A${s}:AS${e}`);
+            await sheets.spreadsheets.values.batchClear({ spreadsheetId, resource: { ranges: a1Ranges } });
+          } else {
+            // Build delete requests from bottom to top to avoid index shifting
+            const deleteRequests = ranges
+              .map(([s, e]) => ({ start: s - 1, end: e })) // convert to 0-based, end exclusive
+              .sort((r1, r2) => r2.start - r1.start) // descending by start index
+              .map(({ start, end }) => ({
+                deleteDimension: {
+                  range: {
+                    sheetId,
+                    dimension: 'ROWS',
+                    startIndex: start,
+                    endIndex: end
+                  }
+                }
+              }));
+
+            await sheets.spreadsheets.batchUpdate({
+              spreadsheetId,
+              resource: { requests: deleteRequests }
+            });
+          }
+
+          console.log(`Removed ${ranges.length} contiguous range(s) for sheet "${sheetName}".`);
         } else {
           console.log(`No existing rows to clear for ${sheetName} within ${START_DATE}..${END_DATE}.`);
         }

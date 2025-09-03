@@ -57,10 +57,10 @@ const CUSTOMER_ID = "2653573";
 const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2Y4LWRkMTE3ODRhNzBlNg==";
 const FOLDER_ID = '1O0In92io6PksS-VEdr1lyD-VfVC6mVV3';
 
-const START_DATE = getCurrentDate(); // Single-day window ending 2 days ago
-const END_DATE = getCurrentDate();   // Same as start for one-day update
-// const START_DATE = '2025-07-01'; // Single-day window ending 2 days ago
-// const END_DATE = '2025-08-28';
+// const START_DATE = getCurrentDate(); // Single-day window ending 2 days ago
+// const END_DATE = getCurrentDate();   // Same as start for one-day update
+const START_DATE = '2025-08-28'; // Single-day window ending 2 days ago
+const END_DATE = '2025-09-01';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints

@@ -87,7 +87,7 @@ const date = getCurrentDate();
 // const START_DATE = date; // Single-day window ending 2 days ago
 // const END_DATE = date;   // Same as start for one-day update
 const START_DATE = '2025-04-01';
-const END_DATE = '2025-08-26';
+const END_DATE = '2025-08-31';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
@@ -800,32 +800,15 @@ const main = async () => {
     console.log(`Found ${groups.length} groups`);
     // OVERRIDE: restrict to only the requested groups (Option 1)
     groups = [
-      { group_id: 2598094, name: 'BookMyShow' },
-      { group_id: 2600358, name: 'BookMyShow (Secondary)' },
-      { group_id: 2607055, name: 'MTR Foods' },
-      { group_id: 2607133, name: 'Ecotact' },
-      { group_id: 2603490, name: 'Voltas' },
-      { group_id: 2615216, name: 'ITC Grand Central' },
-      { group_id: 2634004, name: 'ITC Grand Goa' },
-      { group_id: 2634001, name: 'ITC Maratha' },
-      { group_id: 2634002, name: 'ITC Narmada' },
-      { group_id: 2613996, name: 'ITC Grand Chola' },
-      { group_id: 2634572, name: 'ITC Windsor' },
-      { group_id: 2633999, name: 'ITC Kohenur' },
-      { group_id: 2612165, name: 'ITC Gardenia' },
-      { group_id: 2612159, name: 'ITC Kakatiya' },
-      { group_id: 2615211, name: 'ITC Royal Bengal' },
-      { group_id: 2615214, name: 'ITC Sonar' },
-      { group_id: 2612161, name: 'ITC Mughal' },
-      { group_id: 2612164, name: 'ITC Rajputana' },
-      { group_id: 2612162, name: 'ITC Grand Bharat' },
-      { group_id: 2612160, name: 'ITC Maurya' },
-      { group_id: 2607046, name: 'Tata Consumer Products' },
-      { group_id: 2607111, name: 'McCain Foods India' },
-      { group_id: 2627846, name: 'ITC Limited' },
-      { group_id: 2607043, name: 'Pot and Bloom' },
-      { group_id: 2621112, name: 'PartySmart India' },
-      { group_id: 2607823, name: 'WoknRoll India' }
+
+      { group_id: 2615214, name: 'ITC Sonar, Kolkata' }, // need to run again 
+      { group_id: 2607791, name: 'Londondairy' },
+      { group_id: 2626164, name: 'Mahindra Rise' }, // need to run again 
+      { group_id: 2605490, name: 'Maxx Protein' }, // need to run again 
+      { group_id: 2603481, name: 'Specta Quartz Surfaces' }, // need to run again 
+      { group_id: 2603509, name: 'Treo by Milton' }
+      
+      
     ];
     console.log(`Overridden groups to ${groups.length}:`, groups.map(g => `${g.name} (${g.group_id})`).join(', '));
     
@@ -849,11 +832,11 @@ const main = async () => {
 
     // Remove duplicates and clean profiles
     const uniqueProfiles = [...new Map(profiles.map(item => [item.customer_profile_id, item])).values()];
-
+    //need to run again 7203910, 7111511
     // OVERRIDE: restrict to only the requested profiles (filtered by provided IDs)
     profiles = uniqueProfiles.filter(profile => {
       return [
-        7129981, 7129985, 7102964, 7111515, 7111512, 7113961, 7113962, 7113965, 7113960, 7113963, 7113958, 7113964, 7111502, 7111507, 7167458, 7167460, 7111501, 7111508, 7111503, 7111506, 7109674, 7109681, 7111513, 7111514, 7111511, 7109677, 7109682, 7109683, 7109678, 7109684, 7109675, 7109676, 7129929, 7129930, 7130095, 7130090, 7130091, 7130101, 7129982, 7179146, 7179148, 7129927, 7129928, 7129958, 7162975, 7162976, 7131515, 7131516
+       7111511, 7203910, 7099896, 7099892, 7175489, 7175490, 7184810, 7186701, 7126140, 7126142, 7126144, 2603481, 7120087, 7120160 , 7120179, 7120180
       ].includes(profile.customer_profile_id);
     });
 
