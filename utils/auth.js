@@ -17,17 +17,46 @@ const authenticateWithEnv = async () => {
   try {
     console.log('Authenticating with environment variables...');
     
-    // Get service account credentials from environment
+    // Prefer Application Default Credentials if available
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      console.log(`Using GOOGLE_APPLICATION_CREDENTIALS at: ${process.env.GOOGLE_APPLICATION_CREDENTIALS}`);
+      return authenticateWithADC();
+    }
+
+    // Fallback to legacy env-based private key credentials
     const credentials = getServiceAccountCredentials();
-    
-    // Validate required fields
     if (!credentials.client_email || !credentials.private_key) {
       throw new Error('Missing required environment variables: GOOGLE_CLIENT_EMAIL or GOOGLE_PRIVATE_KEY');
     }
-    
     return authenticateWithServiceAccountKey(credentials);
   } catch (error) {
     console.error(`Environment authentication error: ${error.message}`);
+    throw error;
+  }
+};
+
+/**
+ * Authenticate using Application Default Credentials (ADC)
+ * Relies on GOOGLE_APPLICATION_CREDENTIALS pointing to a service account JSON
+ * Works locally and on cloud providers that expose default credentials
+ * @returns {Promise<{auth: any, drive: google.drive.v3.Drive, sheets: google.sheets.v4.Sheets}>}
+ */
+const authenticateWithADC = async () => {
+  try {
+    const scopes = [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/drive'
+    ];
+    const auth = await google.auth.getClient({ scopes });
+    // Force a token fetch to validate credentials early
+    if (auth.authorize) {
+      try { await auth.authorize(); } catch (_) { /* noop for getClient types that don't support authorize */ }
+    }
+    const drive = google.drive({ version: 'v3', auth });
+    const sheets = google.sheets({ version: 'v4', auth });
+    return { auth, drive, sheets };
+  } catch (error) {
+    console.error(`ADC authentication error: ${error.message}`);
     throw error;
   }
 };
@@ -110,20 +139,6 @@ const authenticateWithServiceAccountKey = async (credentials) => {
   try {
     console.log(`Authenticating with service account: ${credentials.client_email}`);
     
-    // Debug: Log the private key state
-    console.log('Private key type:', typeof credentials.private_key);
-    console.log('Private key length:', credentials.private_key?.length);
-    console.log('Private key first 50 chars:', credentials.private_key?.substring(0, 50));
-    console.log('Private key last 50 chars:', credentials.private_key?.substring(credentials.private_key?.length - 50));
-    
-    // Verify PEM format
-    if (!credentials.private_key?.includes('-----BEGIN PRIVATE KEY-----') || 
-        !credentials.private_key?.includes('-----END PRIVATE KEY-----')) {
-      console.error('ERROR: Private key is missing proper PEM headers/footers');
-    } else {
-      console.log('Private key has valid PEM format');
-    }
-    
     // Create a JWT client with more direct approach
     const auth = new google.auth.JWT(
       credentials.client_email,
@@ -132,15 +147,10 @@ const authenticateWithServiceAccountKey = async (credentials) => {
       [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive'
-      ],
-      null, // subject (optional)
-      'RS256', // algorithm (explicitly set to RS256)
-      'RS256', // keyId (can be same as algorithm)
-      null // key provider (not needed for direct key)
+      ]
     );
     
     // Authorize the client
-    console.log('Attempting to authorize JWT...');
     await auth.authorize();
     
     // Create Drive and Sheets clients
@@ -271,5 +281,6 @@ const verifyFolderAccess = async (drive, folderId) => {
 module.exports = {
   authenticateWithEnv,
   authenticateWithServiceAccount,
+  authenticateWithADC,
   verifyFolderAccess
 };

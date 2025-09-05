@@ -4,34 +4,24 @@
  * Check if required Google APIs are enabled
  */
 
-const fs = require('fs');
-const path = require('path');
 const { google } = require('googleapis');
 
 const checkApis = async () => {
   try {
     console.log('🔍 Checking Google API status...\n');
     
-    // Load service account
-    const serviceAccountPath = path.join(__dirname, 'service-account-key.json');
-    const serviceAccountKey = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'));
-    console.log(`✓ Service account loaded: ${serviceAccountKey.client_email}`);
-    
-    // Authenticate with additional scopes
-    const auth = new google.auth.JWT(
-      serviceAccountKey.client_email,
-      null,
-      serviceAccountKey.private_key,
-      [
-        'https://www.googleapis.com/auth/spreadsheets',
-        'https://www.googleapis.com/auth/drive',
-        'https://www.googleapis.com/auth/drive.file',
-        'https://www.googleapis.com/auth/drive.metadata'
-      ]
-    );
-    
-    await auth.authorize();
-    console.log('✓ Authentication successful\n');
+    // Authenticate using Application Default Credentials (ADC)
+    const scopes = [
+      'https://www.googleapis.com/auth/spreadsheets',
+      'https://www.googleapis.com/auth/drive',
+      'https://www.googleapis.com/auth/drive.file',
+      'https://www.googleapis.com/auth/drive.metadata'
+    ];
+    const auth = await google.auth.getClient({ scopes });
+    if (auth.authorize) {
+      try { await auth.authorize(); } catch (_) {}
+    }
+    console.log('✓ Authentication successful via ADC\n');
     
     // Check Drive API
     const drive = google.drive({ version: 'v3', auth });

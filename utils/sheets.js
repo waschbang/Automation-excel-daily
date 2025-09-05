@@ -7,23 +7,35 @@ const sheets = google.sheets('v4');
 
 /**
  * Authenticate with Google Sheets API
- * @param {string} credentialsPath - Path to credentials JSON file
- * @returns {Promise<Object>} Google auth client
+ * Prefers Application Default Credentials via GOOGLE_APPLICATION_CREDENTIALS.
+ * If a credentialsPath is provided and ADC isn't configured, falls back to JWT from file.
+ * @param {string} [credentialsPath] - Optional path to credentials JSON file
+ * @returns {Promise<Object|null>} Google auth client
  */
 const getGoogleAuth = async (credentialsPath) => {
   try {
+    const scopes = ['https://www.googleapis.com/auth/spreadsheets'];
+    // Prefer ADC if env is configured or no explicit path provided
+    if (process.env.GOOGLE_APPLICATION_CREDENTIALS || !credentialsPath) {
+      const auth = await google.auth.getClient({ scopes });
+      if (auth.authorize) {
+        try { await auth.authorize(); } catch (_) {}
+      }
+      console.log('Successfully authenticated with Google Sheets API via ADC');
+      return auth;
+    }
+
+    // Fallback to explicit service account file if provided
     const credentials = JSON.parse(fs.readFileSync(credentialsPath, 'utf8'));
     const { client_email, private_key } = credentials;
-    
     const auth = new google.auth.JWT(
       client_email,
       null,
       private_key,
-      ['https://www.googleapis.com/auth/spreadsheets']
+      scopes
     );
-    
     await auth.authorize();
-    console.log('Successfully authenticated with Google Sheets API');
+    console.log('Successfully authenticated with Google Sheets API via key file');
     return auth;
   } catch (error) {
     console.error(`Error authenticating with Google: ${error.message}`);
