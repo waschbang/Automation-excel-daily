@@ -18,8 +18,6 @@ const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/simple-drive');
 const groupUtils = require('./utils/groups');
 const getCurrentDate = () => {
-  // Use the date from 2 days ago instead of today to ensure complete metrics
-  // Social media platforms often have a delay in reporting analytics
   const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 2);
@@ -29,7 +27,6 @@ const getCurrentDate = () => {
   const day = String(yesterday.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
-// Global write throttle (Sheets write limits are per user per minute). Adjust if needed.
 const WRITE_MIN_INTERVAL_MS = 2000; // ~30 writes/min max
 let lastWriteAt = 0;
 async function throttleWrite() {
@@ -39,13 +36,11 @@ async function throttleWrite() {
   lastWriteAt = Date.now();
 }
 /**
- * Sleep for a specified duration
  * @param {number} ms - Milliseconds to sleep
  * @returns {Promise<void>}
  */
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// Retry helper with exponential backoff and jitter
 async function retryWithBackoff(fn, {
   maxAttempts = 5,
   baseDelayMs = 15000, // 15s base to be conservative
@@ -84,10 +79,10 @@ const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2
 const FOLDER_ID = '13XPLx5l1LuPeJL2Ue03ZztNQUsNgNW06';
 
 const date = getCurrentDate();
-// const START_DATE = date; // Single-day window ending 2 days ago
-// const END_DATE = date;   // Same as start for one-day update
-const START_DATE = '2025-08-29';
-const END_DATE = '2025-09-01';
+const START_DATE = date; // Single-day window ending 2 days ago
+const END_DATE = date;   // Same as start for one-day update
+// const START_DATE = '2025-04-01';
+// const END_DATE = '2025-09-02';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
@@ -114,12 +109,10 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       throw new Error('Invalid Google API clients provided');
     }
     
-    // Format current date and time for the spreadsheet title
     const now = new Date();
     const formattedDate = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'); // MM-DD-YYYY
     const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace('AM', 'am').replace('PM', 'pm'); // HH:MM am/pm format
     
-    // Search only for sheets that are copies: names like "Copy of <Group Name>..."
     const baseNamePattern = `Copy of ${groupName}`;
     console.log(`Group name: "${groupName}"`);
     console.log(`Base name pattern for search: "${baseNamePattern}"`);
@@ -127,11 +120,9 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
     // Keep the spreadsheet title as the pure group name
     const spreadsheetTitle = `${groupName}`;
     console.log(`Spreadsheet title: "${spreadsheetTitle}"`);
-    
-    // First check if a spreadsheet for this group already exists
+
     console.log(`Looking for existing spreadsheet: "${baseNamePattern}"`);
-    
-    // List all spreadsheets in the folder first for debugging
+
     try {
       const listResponse = await drive.files.list({
         q: `mimeType='application/vnd.google-apps.spreadsheet' and '${FOLDER_ID}' in parents and trashed=false`,

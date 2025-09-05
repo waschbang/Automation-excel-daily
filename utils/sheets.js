@@ -94,7 +94,7 @@ const setupSheetHeaders = async (auth, spreadsheetId, sheetName, headers) => {
       auth,
       spreadsheetId,
       range: headerRange,
-      valueInputOption: 'RAW',
+      valueInputOption: 'USER_ENTERED',
       resource: {
         values: [headers]
       }
@@ -172,12 +172,12 @@ const updateSheet = async (auth, spreadsheetId, rows, sheetName) => {
       const newRows = rows.filter(newRow => {
         // Each new row should have date at index 0 and profile ID at index 4
         const newRowDate = normalizeDate(newRow[0]);
-        const newRowProfileId = String(newRow[4]).trim(); // Normalize profile ID
+        const newRowProfileId = String(newRow[3]).trim(); // Profile ID is column D (index 3)
         
         // Check if this profile's data already exists
         const exists = recentData.some(existingRow => {
           const existingRowDate = normalizeDate(existingRow[0]);
-          const existingRowProfileId = String(existingRow[4]).trim(); // Normalize profile ID
+          const existingRowProfileId = String(existingRow[3]).trim(); // Profile ID is column D (index 3)
           
           return existingRowDate === newRowDate && existingRowProfileId === newRowProfileId;
         });
@@ -210,18 +210,40 @@ const updateSheet = async (auth, spreadsheetId, rows, sheetName) => {
       rowCount: rows.length
     });
 
+    // Determine the sheet's existing date pattern for column A and format our outgoing dates to match
+    const { pattern: existingPattern, source: patternSource } = await determineExistingDatePattern(auth, spreadsheetId, sheetName);
+    console.log(`Date pattern detection: pattern="${existingPattern || 'N/A'}" (source=${patternSource})`);
+
+    const formattedRows = rows.map(r => {
+      const newRow = [...r];
+      try {
+        // Only format if column 0 looks like a date and we have a pattern
+        if (newRow[0]) {
+          const iso = normalizeToIsoDateString(newRow[0]);
+          if (iso) {
+            newRow[0] = formatDateByPattern(iso, existingPattern);
+          }
+        }
+      } catch (_) {}
+      return newRow;
+    });
+
     const updateResponse = await sheets.spreadsheets.values.update({
       auth,
       spreadsheetId,
       range: `${sheetName}!A${nextRow}:${lastCol}${lastRow}`,
-      valueInputOption: 'RAW',
+      valueInputOption: 'USER_ENTERED',
       resource: {
-        values: rows
+        values: formattedRows
       }
     });
 
     console.log('Sheet update response:', updateResponse.data);
     console.log(`Updated ${updateResponse.data.updatedRows} rows starting from row ${nextRow}`);
+    // Apply date format to Date column (A) only if there was no existing pattern detected
+    if (!existingPattern) {
+      try { await ensureDateColumnFormat(auth, spreadsheetId, sheetName); } catch (_) {}
+    }
     return true;
   } catch (error) {
     console.error(`Error updating sheet: ${error.message}`);
@@ -272,11 +294,174 @@ const getSheetValues = async (auth, spreadsheetId, sheetName, range) => {
   }
 };
 
+/**
+ * Ensure column A is formatted as a Date with YYYY-MM-DD pattern on the target sheet.
+ * Applies to A2:A (leaves header A1 untouched).
+ */
+const ensureDateColumnFormat = async (auth, spreadsheetId, sheetName) => {
+  try {
+    // Resolve sheetId from sheet title
+    const ss = await sheets.spreadsheets.get({ auth, spreadsheetId, includeGridData: false });
+    const sheet = (ss.data.sheets || []).find(s => s.properties.title === sheetName);
+    const sheetId = sheet?.properties?.sheetId;
+    if (sheetId == null) return;
+
+    await sheets.spreadsheets.batchUpdate({
+      auth,
+      spreadsheetId,
+      resource: {
+        requests: [
+          {
+            repeatCell: {
+              range: { sheetId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, // A2:A
+              cell: {
+                userEnteredFormat: {
+                  numberFormat: { type: 'DATE', pattern: 'yyyy-mm-dd' }
+                }
+              },
+              fields: 'userEnteredFormat.numberFormat'
+            }
+          }
+        ]
+      }
+    });
+  } catch (err) {
+    console.warn(`Failed to set date format on ${sheetName}!A:A: ${err.message}`);
+  }
+};
+
+/**
+ * Try to detect the existing date pattern for column A by checking cell formatting.
+ * Returns { pattern: string|null, source: 'format'|'display'|'none' }
+ */
+const determineExistingDatePattern = async (auth, spreadsheetId, sheetName) => {
+  try {
+    // First, look at cell format for A2:A50
+    const meta = await sheets.spreadsheets.get({
+      auth,
+      spreadsheetId,
+      includeGridData: true,
+      ranges: [`${sheetName}!A2:A50`],
+      fields: 'sheets(data(rowData(values(userEnteredFormat.numberFormat,type,userEnteredValue,formattedValue))),properties(title))'
+    });
+
+    const sheet = (meta.data.sheets || [])[0];
+    const rows = sheet?.data?.[0]?.rowData || [];
+    for (const row of rows) {
+      const cell = row?.values?.[0];
+      const fmt = cell?.userEnteredFormat?.numberFormat;
+      if (fmt && (fmt.type === 'DATE' || fmt.type === 'DATE_TIME')) {
+        if (fmt.pattern && typeof fmt.pattern === 'string' && fmt.pattern.trim()) {
+          return { pattern: fmt.pattern, source: 'format' };
+        }
+      }
+    }
+
+    // Fallback: inspect displayed values to infer a common pattern
+    const disp = await sheets.spreadsheets.values.get({
+      auth,
+      spreadsheetId,
+      range: `${sheetName}!A2:A50`,
+      valueRenderOption: 'FORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING'
+    });
+    const vals = (disp.data.values || []).map(v => (v && v[0]) ? String(v[0]) : '').filter(Boolean);
+    for (const v of vals) {
+      const inferred = inferPatternFromDisplay(v);
+      if (inferred) return { pattern: inferred, source: 'display' };
+    }
+
+    return { pattern: null, source: 'none' };
+  } catch (err) {
+    console.warn(`Could not determine existing date pattern for ${sheetName}: ${err.message}`);
+    return { pattern: null, source: 'none' };
+  }
+};
+
+// Infer a simple date pattern from a display string
+const inferPatternFromDisplay = (s) => {
+  const str = String(s).trim();
+  // yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return 'yyyy-mm-dd';
+  // dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return 'dd/mm/yyyy';
+  // mm/dd/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    // ambiguous with dd/mm, but we'll keep mm/dd as alternative; actual disambiguation needs locale
+    return 'mm/dd/yyyy';
+  }
+  // d/m/yyyy or m/d/yyyy (single-digit variants)
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(str)) return 'd/m/yyyy';
+  // 29 Aug 2025
+  if (/^\d{1,2}\s+[A-Za-z]{3,}\s+\d{4}$/.test(str)) return 'd mmm yyyy';
+  return null;
+};
+
+// Normalize various inputs to ISO YYYY-MM-DD
+const normalizeToIsoDateString = (value) => {
+  if (value == null) return '';
+  const raw = String(value).trim();
+  if (!raw) return '';
+  // already ISO
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  // numeric (serial)
+  const asNum = Number(raw);
+  if (!Number.isNaN(asNum) && raw !== '') {
+    const epoch = new Date(Date.UTC(1899, 11, 30));
+    const ms = epoch.getTime() + Math.round(asNum) * 86400000;
+    const dt = new Date(ms);
+    const yyyy = dt.getUTCFullYear();
+    const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  // parse generically
+  const parsed = new Date(raw);
+  if (!isNaN(parsed.getTime())) {
+    const yyyy = parsed.getFullYear();
+    const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+    const dd = String(parsed.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return '';
+};
+
+// Format an ISO YYYY-MM-DD into a target pattern (limited set). If no pattern, return ISO.
+const formatDateByPattern = (iso, pattern) => {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return iso;
+  if (!pattern) return iso;
+  const [y, m, d] = iso.split('-');
+  switch ((pattern || '').toLowerCase()) {
+    case 'yyyy-mm-dd':
+    case 'yyyy-mm-dd;@':
+      return `${y}-${m}-${d}`;
+    case 'dd/mm/yyyy':
+    case 'dd/mm/yyyy;@':
+    case 'd/m/yyyy':
+      return `${d}/${m}/${y}`;
+    case 'mm/dd/yyyy':
+    case 'mm/dd/yyyy;@':
+    case 'm/d/yyyy':
+      return `${m}/${d}/${y}`;
+    case 'd mmm yyyy': {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const idx = parseInt(m, 10) - 1;
+      return `${parseInt(d,10)} ${months[idx]} ${y}`;
+    }
+    default:
+      return `${y}-${m}-${d}`;
+  }
+};
+
 module.exports = {
   getGoogleAuth,
   createSheetIfNotExists,
   setupSheetHeaders,
   updateSheet,
   getColumnLetter,
-  getSheetValues
+  getSheetValues,
+  ensureDateColumnFormat,
+  determineExistingDatePattern,
+  formatDateByPattern,
+  normalizeToIsoDateString
 };

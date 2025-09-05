@@ -1,0 +1,548 @@
+Post Analytics Endpoint
+POST /v1/<customer ID>/analytics/posts
+The posts content endpoint queries for individual sent posts based on a filter criteria.
+
+Request Body - Post Analytics Endpoint
+An example request:
+
+{
+  "fields": [
+    "created_time",
+    "perma_link",
+    "text",
+    "internal.tags.id",
+    "internal.sent_by.id",
+    "internal.sent_by.email",
+    "internal.sent_by.first_name",
+    "internal.sent_by.last_name"
+  ],
+  "filters": [
+    "customer_profile_id.eq(1234, 5678, 9012)",
+    "created_time.in(2020-04-06T00:00:00..2020-04-19T23:59:59)"
+  ],
+  "metrics": [
+    "lifetime.impressions",
+    "lifetime.reactions"
+  ],
+  "timezone": "America/Chicago",
+  "page": 1
+}
+Response Data - Post Analytics Endpoint
+An example response:
+
+{
+  "data": [
+      {
+        "text": "Come by for a cold brew!",
+        "perma_link": "https://www.instagram.com/p/B-pIo1GFqyl/",
+        "metrics": {
+          "lifetime.impressions": 15,
+          "lifetime.reactions": 0
+        },
+        "created_time": "2020-04-06T14:27:03Z",
+        "internal": {
+          "tags": [
+            {"id": 111111},
+            {"id": 111112},
+            {"id": 111113}
+        ],
+        "sent_by": {
+          "id": 1155555,
+          "email": "sprout.user@sproutsocial.com",
+          "first_name": "Sprout",
+          "last_name": "User"
+        }
+      },
+      ...
+  ],
+  "paging": {
+    "current_page": 1,
+    "total_pages": 3
+  }
+}
+Post Request Limits & Pagination
+customer_profile_id(filters): maximum of 100 profiles per request
+Pagination of response: pagination is based on 50 messages per response
+Messages Endpoint
+POST /v1/<customer ID>/messages
+The messages endpoint provides detailed data and metadata about your Sprout messages.
+
+Requests - Messages Endpoint
+The request body for a Messages request is a JSON object with the following name/values pairs:
+
+Key	Description	Example
+filters	Refer to the Request Filters section below for details	["group_id.eq(78910)", "customer_profile_id.eq(1234, 5678)", "created_time.in(2022-01-01..2022-02-01)"]
+fields
+(optional)	List of fields to return in results. If omitted, only the guidfield is returned. Refer to the Message Fields section for full list of valid fields	["post_type", "created_time", "from.name", "text"]
+limit
+(optional)	Specifies the max number of results per page in the response
+Default: 50, Max: 100	10
+timezone
+(optional)	Time zone — from the ICANN time zone database — used for period values	"America/Chicago"
+page_cursor
+(optional)	In paginated results, specifies the next page of data to return. Pagination for the messages endpoint only supports fetching the 'next' page of data. See Messages Request Limits & Pagination section for details	"page_cursor": "abc123=="
+sort
+(optional)	Return results sorted by message created_time
+Default: descending	["created_time:asc"]
+Request Filters - Messages Endpoint
+All requests to the Messages Endpoint require a filterparameter; the following table details the available filteroptions, which includes both required and optional filters:
+
+Filter Name	Description	Example Values
+group_id	Exactly one Group Id to retrieve messages for	"group_id.eq(78910)"
+customer_profile_id	One or more Profile ids to retrieve messages for; these profiles must all belong to the requested group_id	"customer_profile_id.eq(1234, 5678)"
+message_id
+(mutually exclusive)	One or more message GUIDs to retrieve; Must be used exclusively of all other filters	"message_id.eq(t:1234, p:5678)"
+created_time	Only return messages having a created_timewithin the provided date range; accepts either datesor datetimes. Dates without timestamps are interpreted as midnight of that date, i.e. 2022-06-09 is treated as 2022-06-09T00:00:00	"created_time.in(2022-01-01...2022-02-01)"
+action_last_update_time
+(optional)	Only return messages which have a Sprout action (Reply, Tag, Like or Complete) having an action_timewithin the provided date range; accepts either datesor datetimes. Dates without timestamps are interpreted as midnight of that date, i.e. 2022-06-09 is treated as 2022-06-09T00:00:00. This range cannot be chronologically before the created_timerange	"action_last_update_time.in(2022-01-01...2022-02-01)"
+post_type
+(optional)	If provided, only messages of this type will be returned; defaults to all message types if omitted. Refer to the Post Types table for full list of valid post_types available for filtering	"post_type.eq(TWITTER_DIRECT_MESSAGE, INSTAGRAM_MEDIA)"
+tag_id
+(optional)	If provided, only return messages with the specified tag_ids	"tag_id.eq(123, 456, 789)"
+language_code
+(optional)	If provided, only return messages with the specified language_codes	"language_code.eq(en, es, fr)"
+Request Body - Messages Endpoint
+Example request:
+
+{
+  "filters": [
+    "group_id.eq(12345)",
+    "customer_profile_id.eq(1234, 5678, 9012)",
+    "created_time.in(2020-04-06T00:00:00..2020-04-19T23:59:59)",
+    "action_last_update_time.in(2020-08-06T00:00:00..2021-02-28T23:59:59)",
+    "post_type.eq(TWEET,FACEBOOK_POST,INSTAGRAM_DIRECT_MESSAGE)"
+  ],
+  "fields": [
+    "network",
+    "activity_metadata.first_like.time_elapsed",
+    "created_time",
+    "post_category",
+    "post_type",
+    "perma_link",
+    "text",
+    "from",
+    "profile_guid",
+    "internal.tags.id",
+    "internal.sent_by.id",
+    "internal.sent_by.email"
+  ],
+  "sort": ["created_time:desc"],
+  "limit": 50,
+  "timezone": "America/Chicago",
+  "page_cursor": "123abc=="
+}
+Responses - Messages Endpoint
+Responses follow the standard Sprout API response format:
+
+data
+
+This array contains the message's data requested in JSON format.
+
+paging(optional)
+
+This object, if present, indicates there are still more pages of data to be fetched, and provides a cursor pointing to the next page of data:
+
+Key	Description	Example Value
+next_cursor	String of alphanumeric characters representing the next page of data, sorted by message created_time	"abcd1234=="
+Messages Request Limits & Pagination
+message_id(filters): maximum of 100 messages per request
+
+Pagination of response is based on the following request params:
+
+limit- number of messages returned per response (max: 100, default: 50)
+sort- sort order of messages in response; sorted by message created_time(default: desc)
+To paginate results: continuously fetch the "next" page of data, by updating the page_cursorparameter, until a response without a pagingobject is returned
+
+Note: Unlike some other Sprout API Endpoints, index-based paging (e.g. page: 4) is not supported by the Messages Endpoint. While you can specify the sortdirection, you can only ever get the "next" page of data — you can't fetch the "previous" page
+
+A Request containing an invalid page_cursorwill return a HTTP 400 Bad Request response with a message describing the error
+
+Response Data - Messages Endpoint
+Example response:
+
+{
+  "data": [
+    {
+      "post_category": "POST",
+      "post_type": "INSTAGRAM_MEDIA",
+      "profile_guid": "placeholder",
+      "text": "placeholder",
+      "perma_link": "link here",
+      "network": "INSTAGRAM",
+      "internal": {
+        "tags": [
+          {
+            "id": 1234
+          },
+          {
+            "id": 5678
+          }
+        ],
+        "sent_by": {
+          "id": 2066696,
+          "email": "___@sproutsocial.com",
+          "first_name": "placeholder",
+          "last_name": "placeholder"
+        }
+      },
+      "created_time": "2022-06-09T22:10:54Z"
+    },
+    ...
+  ],
+  "paging": {
+    "next_cursor": "456def=="
+  }
+}  
+Listening Endpoints
+Listening endpoints are all HTTP POST endpoints. They provide access to your Listening Topic data, including:
+
+Messages - Enables you to query for messages within a given Topic.
+Metrics - Aggregates data across the Topic.
+Overview
+All requests to and responses from Listening API endpoints have a similar structure.
+
+Requests - Listening Endpoints
+The request body for a Listening API request is a JSON object with the following name/values pairs:
+
+Key	Description	Example Value
+filters	Detailed filters used to filter the results by message created_timeand network. To learn more about advanced filters for Topics see the Filters section.	["created_time.in(2018-01-01...2018-02-01)"]
+metrics	List of metrics to return in results; refer to the metrics	["impressions", "likes"]
+fields	List of fields to return in results; at least one field is required for Listening messages endpoint. Refer to the Listening Message Fields section for full list of valid fields	["content_category", "created_time", "from.name"]
+page
+(optional)	In paginated results, which 1-indexed page to return in the response.
+Pagination is based on default limits of 50 results	3
+limit
+(optional)	Specifies the max number of results per page in the response. Defaults to 50 results for the Listening endpoints.	100
+sort
+(optional)	Sets the sort order for results, specified as a list of fields and directions (ascor desc) in the format <field>:<direction>.	["created_time:asc"]
+timezone
+(optional)	Time zone—from the ICANN time zone database. Timezone arguments only impact date/time-related filters, responses are not impacted and are always in UTC for posts.	"America/Chicago"
+dimensions
+(optional)	(Topic Metrics endpoints only)
+Breaks down metrics into discrete buckets. See Dimensions section to learn what fields work with dimensions.	["created_time.by(day)", "sentiment"]
+Filters - Listening Endpoints
+Filtering is a powerful query mechanism that allows you to isolate data within your Topics. You can combine most fields or metrics with the operators below to produce filter to specific data sets using the Topic Messages or Topic Metric endpoints.
+
+Operator	Description	Example Value
+gt	Greater than	likes.gt(10)
+gte	Greater than or equal to	engagement_total.gte(5)
+lt	Less than	replies.lt(5)
+lte	Less than or equal to	impressions.lte(1000)
+in	Specifies a range. A helper that circumvents needed to use a filter with both gt and lt. Using .. is inclusive of the end value while ... is not. Dates and timestamps are accepted. Dates without timestamps are interpreted as midnight of that date, i.e. 2022-06-09 is treated as 2022-06-09T00:00:00.	created_time.in(2023-05-01…2023-06-01T23:59:59)
+eq	Equals a particular value. Can contain multiple comma separated values. If multiple values are provided, the filter returns data containing at least one value.	network.eq(TWITTER,INSTAGRAM)
+neq	The opposite of eq.	network.neq(FACEBOOK)
+exists	Either true or false. Filter finds (or not) messages that meet the criteria of having a value (or not).	visual_media.exists(true)
+match	Performs a text search query on a specified field. Multiple comma terms can be provided using spaces, wrap phrases or multiple words in quotes. Messages must match all provided terms. If you want a message that matches any single term, place an OR between terms (e.g. blue OR red).	text.match(blue OR red)
+text.match(“the blue car”)
+text.match(blue red green)
+You can apply multiple filters where data must meet all requirements by adding filters to the filters array. An example request using multiple filters:
+
+{
+  "filters": [
+   "created_time.in(2022-11-28..2022-12-29T23:59:59)",
+   "text.match(blue car)",
+   "network.eq(INSTAGRAM,YOUTUBE,LINKEDIN,REDDIT,TUMBLR,WWW,TIKTOK)"
+ ]
+}
+Responses - Listening Endpoints
+Due to greater variability in response length, only the Messages endpoint supports paging. The Metrics endpoint does not support paging, and returns all data in a single response.
+
+Responses follow the standard data API response format:
+
+data
+
+This array contains the Listening data requested. See specific endpoints for additional details.
+
+paging
+
+This object specifies the state of paging for this response:
+
+Key	Description	Example Value
+current_page	1-indexed page number of the response	3
+total_pages	Total number of pages for the request	20
+A pagingobject is always returned, including when the response contains all data in one page. You can rely on checking for current_page = total_pagesin order to know when you are at the end of the paging sequence.
+
+Requesting a page greater than total_pages will return a HTTP 400 Bad Request response with a message describing the error.
+
+Dimensions - Listening Endpoints
+Dimensions are a powerful tool that allow you to slice and bucket Topic metrics. The most common uses for dimensions would be generating metrics over time (e.g. a trend chart) or breaking down metrics by metadata such as sentiment score. The following Topic fields can be used as a dimension.
+
+created_time.by(day)
+created_time.by(month)
+visual_media.media_type
+distribution_type
+network
+sentiment
+language
+explicit_label
+location.city
+location.province
+location.country
+Here is an example of multiple dimensions being used to create a trend chart of sentiment data over time:
+
+{
+  "filters": [
+  "created_time.in(2022-11-28..2022-11-30)",
+  "network.eq(INSTAGRAM,YOUTUBE,LINKEDIN,REDDIT,TUMBLR,WWW,TIKTOK)"
+  ],
+  "metrics": [
+    "replies",
+    "shares_count",
+    "likes"
+  ],
+  "dimensions": [
+    "created_time.by(day)",
+    "sentiment"
+  ],
+  "timezone": "America/Chicago"
+}
+Here is a sample output of this query:
+
+{
+    "data": [
+        {
+            "dimensions": {
+                "created_time": "2022-11-30T00:00:00-06:00",
+                "sentiment": "positive"
+            },
+            "metrics": {
+                "replies": 29.0,
+                "shares_count": 5.0,
+                "likes": 557.0
+            }
+        },
+        {
+            "dimensions": {
+                "created_time": "2022-11-30T00:00:00-06:00",
+                "sentiment": "neutral"
+            },
+            "metrics": {
+                "replies": 17.0,
+                "shares_count": 5.0,
+                "likes": 354.0
+            }
+        },
+        {
+            "dimensions": {
+                "created_time": "2022-11-30T00:00:00-06:00",
+                "sentiment": "negative"
+            },
+            "metrics": {
+                "replies": 49.0,
+                "shares_count": 20.0,
+                "likes": 4725.0
+            }
+        }
+    ],
+    "paging": {}
+}
+
+
+Instagram: Post Metrics
+Metric	Key	Availability
+Comments	lifetime.comments_count	General Availability
+Impressions	lifetime.impressions	General Availability
+Likes	lifetime.likes	General Availability
+Reach	lifetime.impressions_unique	General Availability
+Reactions	lifetime.reactions	General Availability
+Reels Unique Session Plays	lifetime.reels_unique_session_plays	General Availability
+Saves	lifetime.saves	General Availability
+Shares	lifetime.shares_count	General Availability
+SproutLink Clicks	lifetime.link_in_bio_clicks	General Availability
+Story Exits	lifetime.story_exits	General Availability
+Story Replies	lifetime.comments_count	General Availability
+Story Taps Back	lifetime.story_taps_back	General Availability
+Story Taps Forward	lifetime.story_taps_forward	General Availability
+Video Views	lifetime.video_views	General Availability
+Views	lifetime.views	General Availability
+Positive Comments	lifetime.sentiment_comments_positive_count	Premium Analytics Required
+Negative Comments	lifetime.sentiment_comments_negative_count	Premium Analytics Required
+Neutral Comments	lifetime.sentiment_comments_neutral_count	Premium Analytics Required
+Unclassified Comments	lifetime.sentiment_comments_unclassified_count	Premium Analytics Required
+Net Sentiment Score	lifetime.net_sentiment_score	Premium Analytics Required
+
+---
+
+Facebook: Post Metrics
+Metric	Key	Availability
+Impressions	lifetime.impressions	General Availability
+Organic Impressions	lifetime.impressions_organic	General Availability
+Viral Impressions	lifetime.impressions_viral	Premium Analytics Required
+Non-viral Impressions	lifetime.impressions_nonviral	Premium Analytics Required
+Paid Impressions	lifetime.impressions_paid	General Availability
+Fan Impressions	lifetime.impressions_follower	Premium Analytics Required
+Non-fan Impressions	lifetime.impressions_nonfollower	Premium Analytics Required
+Reach	lifetime.impressions_unique	General Availability
+Organic Reach	lifetime.impressions_organic_unique	General Availability
+Viral Reach	lifetime.impressions_viral_unique	Premium Analytics Required
+Non-viral Reach	lifetime.impressions_nonviral_unique	Premium Analytics Required
+Paid Reach	lifetime.impressions_paid_unique	General Availability
+Fan Reach	lifetime.impressions_follower_unique	Premium Analytics Required
+Reactions	lifetime.reactions	General Availability
+Likes	lifetime.likes	General Availability
+Love Reactions	lifetime.reactions_love	General Availability
+Haha Reactions	lifetime.reactions_haha	General Availability
+Wow Reactions	lifetime.reactions_wow	General Availability
+Sad Reactions	lifetime.reactions_sad	General Availability
+Angry Reactions	lifetime.reactions_angry	General Availability
+Comments	lifetime.comments_count	General Availability
+Shares	lifetime.shares_count	General Availability
+Answers	lifetime.question_answers	Premium Analytics Required
+Post Clicks (All)	lifetime.post_content_clicks	General Availability
+Post Link Clicks	lifetime.post_link_clicks	General Availability
+Post Photo View Clicks	lifetime.post_photo_view_clicks	General Availability
+Post Video Play Clicks	lifetime.post_video_play_clicks	General Availability
+Other Post Clicks	lifetime.post_content_clicks_other	General Availability
+Video Length	video_length	Premium Analytics Required
+Video Views	lifetime.video_views	General Availability
+Organic Video Views	lifetime.video_views_organic	General Availability
+Paid Video Views	lifetime.video_views_paid	General Availability
+Autoplay Video Views	lifetime.video_views_autoplay	Premium Analytics Required
+Click to Play Video Views	lifetime.video_views_click_to_play	Premium Analytics Required
+Sound on Video Views	lifetime.video_views_sound_on	Premium Analytics Required
+Sound off Video Views	lifetime.video_views_sound_off	Premium Analytics Required
+Partial Video Views	lifetime.video_views_partial	Premium Analytics Required
+Organic Partial Video Views	lifetime.video_views_partial_organic	Premium Analytics Required
+Paid Partial Video Views	lifetime.video_views_partial_paid	Premium Analytics Required
+Autoplay Partial Video Views	lifetime.video_views_partial_autoplay	Premium Analytics Required
+Click to Play Partial Video Views	lifetime.video_views_partial_click_to_play	Premium Analytics Required
+Full Video Views	lifetime.video_views_30s_complete	Premium Analytics Required
+Organic Full Video Views	lifetime.video_views_30s_complete_organic	Premium Analytics Required
+Paid Full Video Views	lifetime.video_views_30s_complete_paid	Premium Analytics Required
+Autoplay Full Video Views	lifetime.video_views_30s_complete_autoplay	Premium Analytics Required
+Click to Play Full Video Views	lifetime.video_views_30s_complete_click_to_play	Premium Analytics Required
+95% Video Views	lifetime.video_views_p95	Premium Analytics Required
+Organic 95% Video Views	lifetime.video_views_p95_organic	Premium Analytics Required
+Paid 95% Video Views	lifetime.video_views_p95_paid	Premium Analytics Required
+Reels Unique Session Plays	lifetime.reels_unique_session_plays	General Availability
+Unique Video Views	lifetime.video_views_unique	Premium Analytics Required
+Unique Organic Video Views	lifetime.video_views_organic_unique	Premium Analytics Required
+Unique Paid Video Views	lifetime.video_views_paid_unique	Premium Analytics Required
+Unique Full Video Views	lifetime.video_views_30s_complete_unique	Premium Analytics Required
+Unique Organic 95% Video Views	lifetime.video_views_p95_organic_unique	Premium Analytics Required
+Unique Paid 95% Video Views	lifetime.video_views_p95_paid_unique	Premium Analytics Required
+Average Video Time Watched	lifetime.video_view_time_per_view	Premium Analytics Required
+Video View Time	lifetime.video_view_time	Premium Analytics Required
+Organic Video View Time	lifetime.video_view_time_organic	Premium Analytics Required
+Paid Video View Time	lifetime.video_view_time_paid	Premium Analytics Required
+Video Ad Break Ad Impressions	lifetime.video_ad_break_impressions	Premium Analytics Required
+Video Ad Break Ad Earnings	lifetime.video_ad_break_earnings	Premium Analytics Required
+Video Ad Break Ad Cost per Impression (CPM)	lifetime.video_ad_break_cost_per_impression	Premium Analytics Required
+Positive Comments	lifetime.sentiment_comments_positive_count	Premium Analytics Required
+Negative Comments	lifetime.sentiment_comments_negative_count	Premium Analytics Required
+Neutral Comments	lifetime.sentiment_comments_neutral_count	Premium Analytics Required
+Unclassified Comments	lifetime.sentiment_comments_unclassified_count	Premium Analytics Required
+Net Sentiment Score	lifetime.net_sentiment_score	Premium Analytics Required
+
+
+---
+
+LinkedIn
+LinkedIn: Owned Profile Metrics
+Metric	Key	Availability
+Followers	lifetime_snapshot.followers_count	General Availability
+Followers By Job	followers_by_job_function	General Availability
+Followers By Seniority	followers_by_seniority	General Availability
+Net Follower Growth	net_follower_growth	General Availability
+Followers Gained	followers_gained	General Availability
+Organic Followers Gained	followers_gained_organic	General Availability
+Paid Followers Gained	followers_gained_paid	General Availability
+Followers Lost	followers_lost	General Availability
+Impressions	impressions	General Availability
+Reach	impressions_unique	General Availability
+Reactions	reactions	General Availability
+Comments	comments_count	General Availability
+Shares	shares_count	General Availability
+Post Clicks (All)	post_content_clicks	General Availability
+Posts Sent Count	posts_sent_count	General Availability
+Posts Sent By Post Type	posts_sent_by_post_type	General Availability
+Posts Sent By Content Type	posts_sent_by_content_type	General Availability
+
+---
+
+X: Post Metrics
+Metric	Key	Availability
+Impressions	lifetime.impressions	General Availability
+Media Views	lifetime.post_media_views	Premium Analytics Required
+Video Views	lifetime.video_views	General Availability
+Reactions	lifetime.reactions	General Availability
+Likes	lifetime.likes	General Availability
+@Replies	lifetime.comments_count	General Availability
+Reposts	lifetime.shares_count	General Availability
+Post Clicks (All)	lifetime.post_content_clicks	General Availability
+Post Link Clicks	lifetime.post_link_clicks	General Availability
+Other Post Clicks	lifetime.post_content_clicks_other	General Availability
+Post Media Clicks	lifetime.post_media_clicks	Premium Analytics Required
+Post Hashtag Clicks	lifetime.post_hashtag_clicks	Premium Analytics Required
+Post Detail Expand Clicks	lifetime.post_detail_expand_clicks	Premium Analytics Required
+Profile Clicks	lifetime.post_profile_clicks	Premium Analytics Required
+Other Engagements	lifetime.engagements_other	General Availability
+Follows from Posts	lifetime.post_followers_gained	Premium Analytics Required
+Unfollows from Posts	lifetime.post_followers_lost	Premium Analytics Required
+App Engagements	lifetime.post_app_engagements	Premium Analytics Required
+App Install Attempts	lifetime.post_app_installs	Premium Analytics Required
+App Opens	lifetime.post_app_opens	Premium Analytics Required
+Positive Comments	lifetime.sentiment_comments_positive_count	Premium Analytics Required
+Negative Comments	lifetime.sentiment_comments_negative_count	Premium Analytics Required
+Neutral Comments	lifetime.sentiment_comments_neutral_count	Premium Analytics Required
+Unclassified Comments	lifetime.sentiment_comments_unclassified_count	Premium Analytics Required
+Net Sentiment Score	lifetime.net_sentiment_score	Premium Analytics Required
+
+---
+
+LinkedIn: Post Metrics
+Metric	Key	Availability
+Impressions	lifetime.impressions	General Availability
+Reactions	lifetime.reactions	General Availability
+Comments	lifetime.comments_count	General Availability
+Shares	lifetime.shares_count	General Availability
+Post Clicks (All)	lifetime.post_content_clicks	General Availability
+Video Views	lifetime.video_views	General Availability
+Poll Votes	lifetime.vote_count	General Availability
+Positive Comments	lifetime.sentiment_comments_positive_count	Premium Analytics Required
+Negative Comments	lifetime.sentiment_comments_negative_count	Premium Analytics Required
+Neutral Comments	lifetime.sentiment_comments_neutral_count	Premium Analytics Required
+Unclassified Comments	lifetime.sentiment_comments_unclassified_count	Premium Analytics Required
+Net Sentiment Score	lifetime.net_sentiment_score	Premium Analytics Required
+
+---
+
+YouTube: Post Metrics
+Metric	Key	Availability
+Annotation Clicks	lifetime.annotation_clicks	Premium Analytics Required
+Annotation Click Rate	lifetime.annotation_click_through_rate	Premium Analytics Required
+Clickable Annotation Impressions	lifetime.annotation_clickable_impressions	Premium Analytics Required
+Closable Annotation Impressions	lifetime.annotation_closable_impressions	Premium Analytics Required
+Annotation Closes	lifetime.annotation_closes	Premium Analytics Required
+Annotation Close Rate	lifetime.annotation_close_rate	Premium Analytics Required
+Annotation Impressions	lifetime.annotation_impressions	Premium Analytics Required
+Card Clicks	lifetime.card_clicks	Premium Analytics Required
+Card Impressions	lifetime.card_impressions	Premium Analytics Required
+Card Click Rate	lifetime.card_click_rate	Premium Analytics Required
+Card Teaser Clicks	lifetime.card_teaser_clicks	Premium Analytics Required
+Card Teaser Impressions	lifetime.card_teaser_impressions	Premium Analytics Required
+Card Teaser Click Rate	lifetime.card_teaser_click_rate	Premium Analytics Required
+Estimated Minutes Watched	lifetime.estimated_minutes_watched	General Availability
+Estimated YT Red Minutes Watched	lifetime.estimated_red_minutes_watched	Premium Analytics Required
+Content Click Other	lifetime.post_content_clicks_other	Premium Analytics Required
+Shares	lifetime.shares_count	General Availability
+Subscribers Gained	lifetime.subscribers_gained	General Availability
+Subscribers Lost	lifetime.subscribers_lost	General Availability
+YT Red Video Views	lifetime.red_video_views	Premium Analytics Required
+Video Views	lifetime.video_views	General Availability
+Video Likes	lifetime.likes	General Availability
+Video Dislikes	lifetime.dislikes	General Availability
+Video Reactions	lifetime.reactions	General Availability
+Video Comments	lifetime.comments_count	General Availability
+Video Added to Playlist	lifetime.videos_added_to_playlist	Premium Analytics Required
+Video From to Playlist	lifetime.videos_removed_from_playlist	Premium Analytics Required
+Positive Comments	lifetime.sentiment_comments_positive_count	Premium Analytics Required
+Negative Comments	lifetime.sentiment_comments_negative_count	Premium Analytics Required
+Neutral Comments	lifetime.sentiment_comments_neutral_count	Premium Analytics Required
+Unclassified Comments	lifetime.sentiment_comments_unclassified_count	Premium Analytics Required
+Net Sentiment Score	lifetime.net_sentiment_score	Premium Analytics Required
+
+
+---
+
+
