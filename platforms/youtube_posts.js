@@ -42,14 +42,12 @@ const METRICS = [
 
 function buildHeaders(metricList = METRICS) {
   const base = [
-    'Date',
+    'Created Time (UTC)',
     'Network Type',
     'Profile Name',
     'Profile ID',
-    'Post ID',
-    'Post URL',
-    'Post Type',
-    'Post Title'
+    'Perma Link',
+    'Text'
   ];
   return [...base, ...metricList.map(m => m.title)];
 }
@@ -58,10 +56,10 @@ async function setupHeaders(sheetsUtil, auth, spreadsheetId, headers) {
   return sheetsUtil.setupSheetHeaders(auth, spreadsheetId, SHEET_NAME, headers);
 }
 
-function parseIsoDate(dimensions) {
-  const rp = dimensions?.['created_time'] || dimensions?.created_time || dimensions?.['reporting_period.by(day)'] || dimensions?.reporting_period;
+function parseIsoDate(dimensions, dataPoint) {
+  const rp = dataPoint?.created_time || dimensions?.['created_time'] || dimensions?.created_time || dimensions?.['reporting_period.by(day)'] || dimensions?.reporting_period;
   if (!rp) return '';
-  try { return new Date(rp).toISOString().split('T')[0]; } catch { return ''; }
+  try { return new Date(rp).toISOString(); } catch { return ''; }
 }
 
 function get(dp, path, fallback = '') {
@@ -80,24 +78,20 @@ function formatPostData(dataPoint, profileData, headers, truncate) {
   const dimensions = dataPoint.dimensions || {};
   const metrics = dataPoint.metrics || {};
 
-  const date = parseIsoDate(dimensions);
+  const createdAt = parseIsoDate(dimensions, dataPoint);
   const networkType = profileData?.network_type || 'youtube';
   const profileName = profileData?.name || '';
   const profileId = String(profileData?.customer_profile_id || profileData?.profile_id || profileData?.id || '');
-  const postId = get(dimensions, 'post_id', get(dataPoint, 'post_id', ''));
-  const postUrl = get(dimensions, 'post_url', get(dataPoint, 'post_url', ''));
-  const postType = get(dimensions, 'post_type', get(dataPoint, 'post_type', ''));
-  const title = truncate(String(get(dimensions, 'title', get(dataPoint, 'title', '')) || ''), 500);
+  const permaLink = dataPoint?.perma_link || get(dimensions, 'post_url', get(dataPoint, 'post_url', ''));
+  const text = truncate(String(dataPoint?.text || get(dimensions, 'message', get(dataPoint, 'message', '')) || ''), 500);
 
   const row = [
-    date,
+    createdAt,
     networkType,
     profileName,
     profileId,
-    postId,
-    postUrl,
-    postType,
-    title
+    permaLink,
+    text
   ];
 
   for (const m of METRICS) {

@@ -23,6 +23,13 @@ const requestWithRetry = async (fn, opName = 'request', maxRetries = 8, initialB
       const isRateOrQuota = status === 429 || (dataStr && (dataStr.includes('rateLimit') || dataStr.includes('quota')));
       const isAuth = status === 401 || status === 403;
       const isServer = status >= 500 || !status; // network or 5xx
+      const isBadRequest = status === 400 || status === 422;
+
+      // For non-transient client errors, don't retry
+      if (isBadRequest) {
+        console.error(`[Sprout] ${opName} received ${status}. Not retrying. Payload likely invalid.`);
+        return null;
+      }
 
       if (retries > maxRetries) {
         console.error(`[Sprout] ${opName} failed after ${maxRetries} retries: ${error.message}`);

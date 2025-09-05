@@ -50,7 +50,7 @@ const getCurrentDate = () => {
 };
 const date = getCurrentDate();
 const START_DATE = '2025-04-01';
-const END_DATE = '2025-09-02';
+const END_DATE = date;
 
 const WRITE_MIN_INTERVAL_MS = 2000;
 let lastWriteAt = 0;
