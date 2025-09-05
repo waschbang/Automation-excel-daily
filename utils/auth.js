@@ -110,6 +110,20 @@ const authenticateWithServiceAccountKey = async (credentials) => {
   try {
     console.log(`Authenticating with service account: ${credentials.client_email}`);
     
+    // Debug: Log the private key state
+    console.log('Private key type:', typeof credentials.private_key);
+    console.log('Private key length:', credentials.private_key?.length);
+    console.log('Private key first 50 chars:', credentials.private_key?.substring(0, 50));
+    console.log('Private key last 50 chars:', credentials.private_key?.substring(credentials.private_key?.length - 50));
+    
+    // Verify PEM format
+    if (!credentials.private_key?.includes('-----BEGIN PRIVATE KEY-----') || 
+        !credentials.private_key?.includes('-----END PRIVATE KEY-----')) {
+      console.error('ERROR: Private key is missing proper PEM headers/footers');
+    } else {
+      console.log('Private key has valid PEM format');
+    }
+    
     // Create a JWT client with more direct approach
     const auth = new google.auth.JWT(
       credentials.client_email,
@@ -118,10 +132,15 @@ const authenticateWithServiceAccountKey = async (credentials) => {
       [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive'
-      ]
+      ],
+      null, // subject (optional)
+      'RS256', // algorithm (explicitly set to RS256)
+      'RS256', // keyId (can be same as algorithm)
+      null // key provider (not needed for direct key)
     );
     
     // Authorize the client
+    console.log('Attempting to authorize JWT...');
     await auth.authorize();
     
     // Create Drive and Sheets clients
