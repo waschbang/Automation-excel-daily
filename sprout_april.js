@@ -17,6 +17,7 @@ const apiUtils = require('./utils/api');
 const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/simple-drive');
 const groupUtils = require('./utils/groups');
+const { sendSproutCompletionEmail } = require('./utils/sproutEmailHelper');
 const getCurrentDate = () => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -820,8 +821,14 @@ const main = async () => {
     const executionTimeMs = endTime - startTime;
     const executionTimeSec = Math.round(executionTimeMs / 1000);
     const executionTimeMin = Math.round(executionTimeSec / 60 * 10) / 10;
+    const formattedTime = `${executionTimeMin} minutes (${executionTimeSec} seconds)`;
     
-    console.log(`\nTotal execution time: ${executionTimeMin} minutes (${executionTimeSec} seconds)`);
+    console.log(`\nTotal execution time: ${formattedTime}`);
+    
+    // Send completion email
+    console.log('Sending completion email...');
+    const folderLink = `https://drive.google.com/drive/folders/${FOLDER_ID}`;
+    await sendSproutCompletionEmail(allResults, formattedTime, folderLink);
     
   } catch (error) {
     console.error(`Error in main process: ${error.message}`);

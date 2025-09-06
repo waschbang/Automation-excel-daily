@@ -24,6 +24,7 @@ const apiUtils = require('./utils/api');
 const sheetsUtils = require('./utils/sheets');
 const driveUtils = require('./utils/simple-drive');
 const groupUtils = require('./utils/groups');
+const { sendSproutCompletionEmail } = require('./utils/sproutEmailHelper');
 
 // Platform Post Modules
 const igPosts = require('./platforms/instagram_posts');
@@ -406,6 +407,14 @@ async function main() {
       if (!r) return;
       console.log(`Group: ${r.groupName} -> https://docs.google.com/spreadsheets/d/${r.spreadsheetId}/edit`);
     });
+    const formattedTime = `${executionTimeMin} minutes (${executionTimeSec} seconds)`;
+    
+    console.log(`\nTotal execution time: ${formattedTime}`);
+    
+    // Send completion email
+    console.log('Sending completion email...');
+    const folderLink = `https://drive.google.com/drive/folders/${FOLDER_ID}`;
+    await sendSproutCompletionEmail(allResults, formattedTime, folderLink);
   } catch (err) {
     console.error('Error in sprout_posts:', err?.message || err);
   }
