@@ -80,10 +80,10 @@ const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2
 const FOLDER_ID = '13XPLx5l1LuPeJL2Ue03ZztNQUsNgNW06';
 
 const date = getCurrentDate();
-const START_DATE = date; // Single-day window ending 2 days ago
-const END_DATE = date;   // Same as start for one-day update
-// const START_DATE = '2025-04-01';
-// const END_DATE = '2025-09-02';
+// const START_DATE = date; // Single-day window ending 2 days ago
+// const END_DATE = date;   // Same as start for one-day update
+const START_DATE = '2025-09-05';
+const END_DATE = '2025-09-06';
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints

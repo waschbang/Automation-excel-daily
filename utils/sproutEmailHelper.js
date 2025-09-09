@@ -9,14 +9,23 @@ const { sendReportEmail } = require('./email');
  */
 async function sendSproutCompletionEmail(results, executionTime, folderLink = '#') {
   try {
-    const completedSheets = results.filter(r => r.status === 'completed').length;
+    // If results don't have status, consider all as completed
+    const hasStatus = results.every(r => 'status' in r);
+    
+    const completedSheets = hasStatus 
+      ? results.filter(r => r.status === 'completed').length 
+      : results.length;
+      
     const totalSheets = results.length;
-    const failedSheets = results
-      .filter(r => r.status !== 'completed')
-      .map(r => ({
-        name: r.groupName,
-        error: r.error || 'Unknown error'
-      }));
+    
+    const failedSheets = hasStatus 
+      ? results
+          .filter(r => r.status !== 'completed')
+          .map(r => ({
+            name: r.groupName || 'Unknown Group',
+            error: r.error || 'Unknown error'
+          }))
+      : [];
 
     const emailHtml = `
       <h2>Sprout Analytics Processing Complete</h2>
@@ -34,14 +43,28 @@ async function sendSproutCompletionEmail(results, executionTime, folderLink = '#
       <p>Output folder: <a href="${folderLink}">Click here to view files</a></p>
     `;
 
+    // Extract spreadsheet URL from results if available
+    const spreadsheetUrl = results[0]?.spreadsheetId 
+      ? `https://docs.google.com/spreadsheets/d/${results[0].spreadsheetId}/edit`
+      : '';
+      
+    // Get all unique group names from results
+    const groupNames = [...new Set(results.map(r => r.groupName).filter(Boolean))];
+    const groupNameDisplay = groupNames.length > 0 
+      ? groupNames.join(', ') 
+      : 'Multiple Groups';
+    
     await sendReportEmail(
       { 
         totalSheets,
         completedSheets,
-        failedSheets: failedSheets.map(s => s.name)
+        failedSheets: failedSheets.map(s => s.name),
+        spreadsheetUrl,
+        groupName: groupNameDisplay,
+        allGroupNames: groupNames  // Pass all group names to the email template
       },
       folderLink,
-      'Sprout Social Analytics'
+      `Sprout Social Analytics - ${groupNames.length > 1 ? `${groupNames.length} Groups` : groupNameDisplay}`
     );
 
     console.log('Completion email sent successfully');
