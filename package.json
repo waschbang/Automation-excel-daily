@@ -2,10 +2,14 @@
   "name": "sprout-analytics-to-sheets",
   "version": "1.0.0",
   "description": "Pulls analytics from Sprout Social API and writes per-group Google Sheets. Runs daily on EC2 via cron.",
-  "main": "sprout_april.js",
+  "main": "bin/run.js",
+  "bin": {
+    "sprout-analytics": "bin/run.js"
+  },
   "scripts": {
-    "profile": "node sprout_april.js",
-    "posts": "node sprout_posts.js",
+    "start": "node bin/run.js",
+    "profile": "node bin/run.js --pipeline=profile",
+    "posts": "node bin/run.js --pipeline=posts",
     "test": "echo \"No tests yet — see REFACTOR_PLAN.md Phase 8\" && exit 0"
   },
   "keywords": [
