@@ -183,10 +183,19 @@ function truncate(str, max = 500) {
 
 async function processGroup(groupId, groupName, profiles, googleClients) {
   const { drive, sheets, auth } = googleClients;
-  const baseNamePattern = `Copy of ${groupName}`;
+  const canonicalName = driveUtils.canonicalSpreadsheetName(groupName, groupId);
+  const baseNamePattern = canonicalName; // legacy-named variable, now canonical
 
-  // Resolve spreadsheet (reuse existing; do not create new unless necessary)
-  let spreadsheetId = await driveUtils.findExistingSpreadsheet(drive, baseNamePattern, FOLDER_ID);
+  // Primary: groupId-aware resolution
+  let spreadsheetId = null;
+  const hit = await driveUtils.findSpreadsheetForGroup(drive, FOLDER_ID, groupId, groupName);
+  if (hit) {
+    spreadsheetId = hit.id;
+    console.log(`[posts] Resolved "${groupName}" (${groupId}) via ${hit.match}: "${hit.name}"`);
+    if (hit.match !== 'canonical' && hit.match !== 'groupId') {
+      console.log(`[posts] NOTE: file not yet in canonical format. Run scripts/rename-drive-files.js to migrate.`);
+    }
+  }
   if (!spreadsheetId) {
     // Attempt to find similar or global reuse (mirror logic in sprout_april.js fallback)
     try {

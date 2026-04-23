@@ -5,7 +5,105 @@
 const { google } = require('googleapis');
 
 /**
- * Find an existing spreadsheet in a folder by title pattern
+ * Canonical spreadsheet name that disambiguates Customer Groups with the
+ * same display name. Sprout has multiple groups sharing names
+ * (e.g. "Rajasthan Revealed", "Birla Opus", "RCAT Rajasthan"), and the
+ * legacy name-based lookup silently clobbered one group's data into
+ * another's sheet. The [<groupId>] suffix guarantees uniqueness.
+ *
+ * @param {string} groupName
+ * @param {string|number} groupId
+ * @returns {string} e.g. "Copy of Rajasthan Revealed [2760771]"
+ */
+const canonicalSpreadsheetName = (groupName, groupId) => {
+  if (groupId == null || groupId === '') return `Copy of ${groupName}`;
+  return `Copy of ${groupName} [${groupId}]`;
+};
+
+/**
+ * Match a file name against the "Copy of X [groupId]" format. Returns the
+ * embedded groupId string, or null if the name is not canonical.
+ * @param {string} name
+ * @returns {string|null}
+ */
+const extractGroupIdFromName = (name) => {
+  if (typeof name !== 'string') return null;
+  const m = name.match(/\[([0-9A-Za-z_-]+)\]\s*$/);
+  return m ? m[1] : null;
+};
+
+/**
+ * Resolve the Drive file for a Customer Group using groupId-first matching.
+ *
+ * Lookup order:
+ *   1. Exact match on "Copy of <name> [<groupId>]" — canonical
+ *   2. Any file whose "[<token>]" suffix equals groupId (handles renamed groups)
+ *   3. Exact match on "Copy of <name>" — legacy (pre-migration)
+ *   4. Any file starting with "Copy of <name>"  — legacy fuzzy
+ *   5. null
+ *
+ * Does NOT create new files. Caller decides whether to create on miss.
+ *
+ * @param {google.drive.v3.Drive} drive
+ * @param {string} folderId
+ * @param {string|number} groupId
+ * @param {string} groupName
+ * @returns {Promise<{ id: string, name: string, match: 'canonical'|'groupId'|'legacy-exact'|'legacy-fuzzy' }|null>}
+ */
+const findSpreadsheetForGroup = async (drive, folderId, groupId, groupName) => {
+  try {
+    const query = `mimeType='application/vnd.google-apps.spreadsheet' and '${folderId}' in parents and trashed=false`;
+    const response = await drive.files.list({
+      q: query,
+      fields: 'files(id, name)',
+      spaces: 'drive',
+      pageSize: 1000,
+      includeItemsFromAllDrives: true,
+      supportsAllDrives: true,
+    });
+    const files = response.data.files || [];
+    if (!files.length) return null;
+
+    const canonical = canonicalSpreadsheetName(groupName, groupId);
+    const legacyExact = `Copy of ${groupName}`;
+
+    // 1. canonical exact
+    let hit = files.find((f) => f.name === canonical);
+    if (hit) return { id: hit.id, name: hit.name, match: 'canonical' };
+
+    // 2. any file whose [<id>] suffix equals groupId (catches renamed groups)
+    const idStr = String(groupId);
+    hit = files.find((f) => extractGroupIdFromName(f.name) === idStr);
+    if (hit) return { id: hit.id, name: hit.name, match: 'groupId' };
+
+    // 3. legacy exact
+    hit = files.find((f) => f.name === legacyExact);
+    if (hit) return { id: hit.id, name: hit.name, match: 'legacy-exact' };
+
+    // 4. legacy fuzzy (starts-with). Only return if unambiguous — if
+    //    multiple files start with "Copy of <name>", we cannot safely
+    //    pick one (that is the duplicate-name symptom we are fixing).
+    const fuzzy = files.filter((f) => f.name.startsWith(legacyExact));
+    if (fuzzy.length === 1) {
+      return { id: fuzzy[0].id, name: fuzzy[0].name, match: 'legacy-fuzzy' };
+    }
+    if (fuzzy.length > 1) {
+      console.warn(
+        `[drive] Ambiguous legacy match for group "${groupName}" (${groupId}): ` +
+        `${fuzzy.length} files share the prefix. Will create a new canonical file.`
+      );
+    }
+    return null;
+  } catch (error) {
+    console.error(`findSpreadsheetForGroup failed for ${groupName} (${groupId}): ${error.message}`);
+    return null;
+  }
+};
+
+/**
+ * Find an existing spreadsheet in a folder by title pattern (legacy API,
+ * used only by pipelines during the Phase 5 transition. Prefer
+ * findSpreadsheetForGroup for new code).
  * @param {google.drive.v3.Drive} drive - Authenticated Drive client
  * @param {string} titlePattern - Pattern to match in the spreadsheet title
  * @param {string} folderId - ID of the folder to search in
@@ -282,10 +380,13 @@ const updateSpreadsheetTitle = async (drive, spreadsheetId, newTitle) => {
 };
 
 module.exports = {
+  canonicalSpreadsheetName,
+  extractGroupIdFromName,
+  findSpreadsheetForGroup,
   findExistingSpreadsheet,
   createSpreadsheet,
   createSheet,
   findSpreadsheetByPattern,
   updateSpreadsheetTitle,
-  ensureSheetCapacity
+  ensureSheetCapacity,
 };

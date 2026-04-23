@@ -114,15 +114,12 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
     const formattedDate = now.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-'); // MM-DD-YYYY
     const formattedTime = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }).replace('AM', 'am').replace('PM', 'pm'); // HH:MM am/pm format
     
-    const baseNamePattern = `Copy of ${groupName}`;
-    console.log(`Group name: "${groupName}"`);
-    console.log(`Base name pattern for search: "${baseNamePattern}"`);
-    
-    // Keep the spreadsheet title as the pure group name
-    const spreadsheetTitle = `${groupName}`;
-    console.log(`Spreadsheet title: "${spreadsheetTitle}"`);
-
-    console.log(`Looking for existing spreadsheet: "${baseNamePattern}"`);
+    const canonicalName = driveUtils.canonicalSpreadsheetName(groupName, groupId);
+    const baseNamePattern = canonicalName;        // used for legacy log strings
+    const spreadsheetTitle = canonicalName;       // any new file uses canonical name
+    console.log(`Group name: "${groupName}" (id=${groupId})`);
+    console.log(`Canonical spreadsheet name: "${canonicalName}"`);
+    console.log(`Looking for existing spreadsheet via groupId-first resolver`);
 
     try {
       const listResponse = await drive.files.list({
@@ -147,20 +144,19 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       console.error(`Error listing all spreadsheets: ${listError.message}`);
     }
     
-    // Now search for our specific spreadsheet
-    let spreadsheetId = await driveUtils.findExistingSpreadsheet(
-      drive,
-      baseNamePattern,
-      FOLDER_ID
-    );
-    
+    // Primary: groupId-aware resolution (canonical → groupId suffix → legacy-exact → legacy-fuzzy)
+    let spreadsheetId = null;
+    const hit = await driveUtils.findSpreadsheetForGroup(drive, FOLDER_ID, groupId, groupName);
+    if (hit) {
+      spreadsheetId = hit.id;
+      console.log(`Found existing spreadsheet via ${hit.match}: "${hit.name}" (${hit.id})`);
+      if (hit.match !== 'canonical' && hit.match !== 'groupId') {
+        console.log(`NOTE: file not yet in canonical format. Run scripts/rename-drive-files.js to migrate.`);
+      }
+    }
+
     if (spreadsheetId) {
-      console.log(`Found existing spreadsheet: "${spreadsheetId}"`);
-      // No need to update title since we're using the same name format
-      console.log(`Using existing spreadsheet with name: "${spreadsheetTitle}"`);
-      
-      // No need to update the title since we're using the same name format
-      // Keeping the existing title to avoid unnecessary API calls
+      // already resolved above
     } else {
       // No existing spreadsheet found - check if storage quota exceeded
       console.log(`No existing spreadsheet found with name "${baseNamePattern}".`);
