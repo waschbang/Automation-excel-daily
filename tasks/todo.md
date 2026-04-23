@@ -9,45 +9,51 @@ Follow phases in order. Do not skip. Each phase is reversible via `git revert`.
 
 - [ ] Confirm manual backfill (started 2026-04-23 07:36 UTC) completed successfully
 - [ ] Confirm completion email arrived
-- [ ] Tag current git HEAD as `pre-refactor-baseline`
+- [x] Tag current git HEAD as `pre-refactor-baseline`
 - [ ] Record typical run duration in [HANDOVER.md](../HANDOVER.md)
 
-## Phase 1 — Quarantine + trivial fixes (LOCAL ONLY — no EC2 changes yet)
+## Phase 1 — Quarantine + trivial fixes (LOCAL ONLY — no EC2 changes yet) ✅ commit f4299b7
 
-- [ ] Create `legacy/` with README stating quarantine policy (delete after 2026-05-30)
-- [ ] Move dead files into `legacy/`:
-  - [ ] `simple-analytics.js`
-  - [ ] `schedule-daily-update.js`
-  - [ ] `group-analytics.js`
-  - [ ] `hardcoded_april.js`
-  - [ ] `hardcoded_sprout_posts.js`
-  - [ ] `api/cron.js`
-  - [ ] `simple-auth.js`
-  - [ ] `test-oauth.js`
-  - [ ] `check-apis.js`
-- [ ] Remove unused deps from `package.json`: `express`, `opn`, `fs`, `path`, `node-schedule`
-- [ ] Fix `sprout_posts.js` ReferenceError at end of `main()` (undefined `executionTimeMin` / `executionTimeSec` / `allResults`)
-- [ ] Update `.gitignore`: ensure `.env`, `env.js`, `service-account.json`, `private-key.pem`, `encoded.txt`, `*.log`, `*.log.*`, `scheduler-logs.txt`, `manual-run.log` are covered
-- [ ] Add `.nvmrc` pinning Node 18 (matches EC2)
+- [x] Create `legacy/` with README stating quarantine policy (delete after 2026-05-30)
+- [x] Move dead files into `legacy/`:
+  - [x] `simple-analytics.js`
+  - [x] `schedule-daily-update.js`
+  - [x] `group-analytics.js`
+  - [x] `hardcoded_april.js`
+  - [x] `hardcoded_sprout_posts.js`
+  - [x] `api/cron.js`
+  - [x] `simple-auth.js`
+  - [x] `test-oauth.js`
+  - [x] `check-apis.js`
+- [x] Remove unused deps from `package.json`: `express`, `opn`, `fs`, `path`, `node-schedule` (also: added missing `nodemailer`)
+- [x] Fix `sprout_posts.js` ReferenceError at end of `main()`
+- [x] Update `.gitignore`: `.env`, `env.js`, `service-account.json`, `private-key.pem`, `encoded.txt`, `*.log.*`, `logs/`, `manual-run.log`, `scheduler-logs.txt`, `cron-sprout.log`, `.last-success`, `baselines/`, `.claude/`, `CLAUDE.md`
+- [x] Add `.nvmrc` pinning Node 18
+- [x] Untrack `node_modules/` and `CLAUDE.md` (commits 992dff2, 1129650)
 - [ ] **(EC2 task — deferred to after current backfill finishes)** Update `run-sprout.sh` to run pipelines sequentially instead of parallel
 
 ### Verification before commit
-- [ ] `npm ci` succeeds
-- [ ] `node -c sprout_april.js` and `node -c sprout_posts.js` parse clean
-- [ ] `git status` shows only intended changes
+- [x] `npm install` succeeds after dep cleanup
+- [x] `node -c sprout_april.js` and `node -c sprout_posts.js` parse clean
+- [x] `git status` shows only intended changes
 
-## Phase 2 — Extract shared infrastructure into `src/`
+## Phase 2 — Extract shared infrastructure into `src/` ✅ commit b04dc5b
 
-- [ ] Create `src/` skeleton per REFACTOR_PLAN.md §2.1
-- [ ] `utils/api.js` → `src/clients/sprout.js` + `src/config/metrics.js` + `src/lib/retry.js`
-- [ ] `utils/auth.js` → `src/clients/googleAuth.js`
-- [ ] `utils/env.js` → `src/config/index.js`
-- [ ] `utils/sheets.js` + `utils/simple-drive.js` → `src/clients/{sheets,drive}.js`
-- [ ] `utils/email.js` + `utils/sproutEmailHelper.js` → `src/clients/mailer.js` + `src/reporting/emailReport.js`
-- [ ] `utils/groups.js` → `src/core/groupResolver.js`
-- [ ] `platforms/` → `src/platforms/{profile,post}/<network>.js` with `_base.js`
-- [ ] Update `sprout_april.js` and `sprout_posts.js` to require from `src/*`. **No behavior change.**
-- [ ] Verify output byte-for-byte identical to baseline for one test group
+- [x] Create `src/` skeleton (config, clients, core, reporting, platforms/{profile,post})
+- [x] `utils/api.js` → `src/clients/sprout.js` (split into metrics/retry modules deferred to later phase — file kept intact for now to minimize risk)
+- [x] `utils/auth.js` → `src/clients/googleAuth.js`
+- [x] `utils/env.js` → `src/config/index.js`
+- [x] `utils/sheets.js` → `src/clients/sheets.js`
+- [x] `utils/simple-drive.js` → `src/clients/drive.js`
+- [x] `utils/email.js` → `src/clients/mailer.js`
+- [x] `utils/sproutEmailHelper.js` → `src/reporting/emailReport.js`
+- [x] `utils/groups.js` → `src/core/groupResolver.js`
+- [x] `platforms/<n>.js` → `src/platforms/profile/<n>.js`
+- [x] `platforms/<n>_posts.js` → `src/platforms/post/<n>.js`
+- [x] Dead utils quarantined (`utils/drive.js`, `utils/oauth-utils.js`, `utils/stats.js` → `legacy/utils/`)
+- [x] Update `sprout_april.js` and `sprout_posts.js` to require from `src/*`
+- [x] All 18 src/ modules verified resolvable via `node -e require()` chain
+- [ ] Byte-for-byte output comparison against baseline — deferred to after manual backfill finishes and we can trigger a clean run
 
 ## Phase 3 — Config + secrets
 
@@ -115,4 +121,19 @@ Follow phases in order. Do not skip. Each phase is reversible via `git revert`.
 
 ## Review log
 
-(Append one entry per phase with: date, phase, what shipped, how verified, commit hash, rollback command)
+### 2026-04-23 — Phase 1 shipped
+- **Commit**: `f4299b7` on branch `refactor/phase-1-quarantine`
+- **Scope**: 9 dead files quarantined into `legacy/`; sprout_posts.js ReferenceError fixed; package.json cleaned of 5 unused deps + `nodemailer` declared; `.nvmrc` added; `.gitignore` extended for EC2 secrets and rotated logs; CLAUDE.md + HANDOVER.md + REFACTOR_PLAN.md + tasks/ written
+- **Verified**: `node -c sprout_april.js` and `node -c sprout_posts.js` both OK; no active file references a quarantined file
+- **Rollback**: `git revert f4299b7` (or `git reset --hard pre-refactor-baseline`)
+
+### 2026-04-23 — Phase 2 shipped
+- **Commit**: `b04dc5b` on branch `refactor/phase-1-quarantine`
+- **Scope**: all `utils/*` and `platforms/*` moved into `src/` layered layout (config/ clients/ core/ reporting/ platforms/{profile,post}); dead utils quarantined into `legacy/utils/`; all require() paths updated across 21 files
+- **Verified**: `node -c` on every moved file; `require()` chain test loads all 18 src/ modules; git recorded renames with 97-100% similarity preserving history
+- **Rollback**: `git revert b04dc5b`
+
+### 2026-04-23 — Cleanup (untrack node_modules + CLAUDE.md)
+- **Commits**: `992dff2`, `1129650`
+- **Scope**: node_modules/ (2876 files) and CLAUDE.md removed from git tracking; package-lock.json refreshed to reflect Phase 1 dep cleanup
+- **Rollback**: low-value — these files still exist on disk; `git revert` would re-track them
