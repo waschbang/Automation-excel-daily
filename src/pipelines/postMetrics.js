@@ -14,6 +14,7 @@ const apiUtils = require('../clients/sprout');
 const sheetsUtils = require('../clients/sheets');
 const driveUtils = require('../clients/drive');
 const groupUtils = require('../core/groupResolver');
+const { computeWindow } = require('../core/dateRange');
 const { sendSproutCompletionEmail } = require('../reporting/emailReport');
 
 // Platform Post Modules
@@ -41,9 +42,7 @@ const getCurrentDate = () => {
   const d = String(d2.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 };
-const date = getCurrentDate();
-const START_DATE = '2025-04-01';
-const END_DATE = date;
+// Date window is computed per-group via computeWindow() from src/core/dateRange.js.
 
 const WRITE_MIN_INTERVAL_MS = 2000;
 let lastWriteAt = 0;
@@ -181,7 +180,7 @@ function truncate(str, max = 500) {
   return str.slice(0, max - 1) + '…';
 }
 
-async function processGroup(groupId, groupName, profiles, googleClients) {
+async function processGroup(groupId, groupName, profiles, googleClients, options = {}) {
   const { drive, sheets, auth } = googleClients;
   const canonicalName = driveUtils.canonicalSpreadsheetName(groupName, groupId);
   const baseNamePattern = canonicalName; // legacy-named variable, now canonical
@@ -233,6 +232,24 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
     if (!profilesByNetwork[net]) profilesByNetwork[net] = [];
     profilesByNetwork[net].push(p);
   }
+
+  // Compute per-group date window using the *_post tabs that will be touched.
+  const expectedTabs = Object.keys(profilesByNetwork)
+    .map((net) => postModules[net] && postModules[net].SHEET_NAME)
+    .filter(Boolean);
+  const win = await computeWindow({
+    sheets,
+    spreadsheetId,
+    tabs: expectedTabs,
+    backfill: options.backfill,
+    refreshDays: options.refreshDays,
+  });
+  const START_DATE = win.startDate;
+  const END_DATE = win.endDate;
+  console.log(
+    `[posts][dateRange] group=${groupName} strategy=${win.strategy} ` +
+    `maxExisting=${win.maxExisting || 'n/a'} ⇒ ${START_DATE} → ${END_DATE}`
+  );
 
   // Ensure tabs exist with headers later
   const createdTabs = new Set();
@@ -359,7 +376,7 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
   return { groupId, groupName, spreadsheetId };
 }
 
-async function main() {
+async function main(options = {}) {
   const startTime = new Date();
   try {
     console.log('Starting Post-level Analytics run');
@@ -395,7 +412,7 @@ async function main() {
       const { groupName, profiles: groupProfiles } = data;
       if (!groupProfiles || groupProfiles.length === 0) continue;
       try {
-        const r = await processGroup(groupId, groupName, groupProfiles, { drive, sheets, auth });
+        const r = await processGroup(groupId, groupName, groupProfiles, { drive, sheets, auth }, options);
         results.push(r);
       } catch (e) {
         console.error(`Group ${groupName} failed: ${e.message}`);

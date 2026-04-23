@@ -15,6 +15,7 @@ const apiUtils = require('../clients/sprout');
 const sheetsUtils = require('../clients/sheets');
 const driveUtils = require('../clients/drive');
 const groupUtils = require('../core/groupResolver');
+const { computeWindow } = require('../core/dateRange');
 const { sendSproutCompletionEmail } = require('../reporting/emailReport');
 const getCurrentDate = () => {
   const today = new Date();
@@ -79,11 +80,9 @@ const CUSTOMER_ID = _cfg.sprout.customerId;
 const SPROUT_API_TOKEN = _cfg.sprout.apiToken;
 const FOLDER_ID = _cfg.drive.folderId;
 
-const date = getCurrentDate();
-// const START_DATE = date; // Single-day window ending 2 days ago
-// const END_DATE = date;   // Same as start for one-day update
-const START_DATE = '2025-04-01';
-const END_DATE = date;
+// Date window is now computed per-group in processGroupAnalytics() via
+// computeWindow() (src/core/dateRange.js). Full backfill is available via
+// `node bin/run.js --backfill=YYYY-MM-DD`.
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
@@ -99,7 +98,7 @@ const ANALYTICS_URL = _cfg.sprout.analyticsUrl;
  * @param {Object} googleClients - Authenticated Google API clients
  * @returns {Promise<Array<Object>>} Array of spreadsheet details
  */
-const processGroupAnalytics = async (groupId, groupName, profiles, googleClients) => {
+const processGroupAnalytics = async (groupId, groupName, profiles, googleClients, options = {}) => {
   try {
     console.log(`\n=== Processing Group: ${groupName} (${groupId}) ===`);
     console.log(`Found ${profiles.length} profiles in this group`);
@@ -341,7 +340,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
           }
           
           createdSheets.push(sheetName);
-          
+
           // Set up headers
           const module = networkModules[networkType];
           if (module && module.setupHeaders) {
@@ -352,7 +351,22 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
         }
       }
     }
-    
+
+    // Compute the per-group fetch window (incremental by default; full backfill when --backfill).
+    const window = await computeWindow({
+      sheets,
+      spreadsheetId,
+      tabs: createdSheets,
+      backfill: options.backfill,
+      refreshDays: options.refreshDays,
+    });
+    const START_DATE = window.startDate;
+    const END_DATE = window.endDate;
+    console.log(
+      `[dateRange] group=${groupName} strategy=${window.strategy} ` +
+      `maxExisting=${window.maxExisting || 'n/a'} ⇒ ${START_DATE} → ${END_DATE}`
+    );
+
     // Helper: build a set of ISO date strings between start and end (inclusive)
     function buildDateSet(startDateStr, endDateStr) {
       const set = new Set();
@@ -666,7 +680,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
 /**
  * Main function to orchestrate the entire process
  */
-const main = async () => {
+const main = async (options = {}) => {
   try {
     const startTime = new Date();
     console.log(`Starting Group Analytics Processing at ${startTime.toLocaleTimeString()}`);
@@ -787,7 +801,7 @@ const main = async () => {
       if (profiles.length > 0) {
         try {
           console.log(`\nProcessing group: ${groupName} (${groupId}) with ${profiles.length} profiles`);
-          const results = await processGroupAnalytics(groupId, groupName, profiles, googleClients);
+          const results = await processGroupAnalytics(groupId, groupName, profiles, googleClients, options);
           if (results && results.length > 0) {
             allResults.push(...results);
           }
