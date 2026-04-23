@@ -359,6 +359,7 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
 }
 
 async function main() {
+  const startTime = new Date();
   try {
     console.log('Starting Post-level Analytics run');
 
@@ -407,14 +408,18 @@ async function main() {
       if (!r) return;
       console.log(`Group: ${r.groupName} -> https://docs.google.com/spreadsheets/d/${r.spreadsheetId}/edit`);
     });
+
+    const executionTimeMs = new Date() - startTime;
+    const executionTimeSec = Math.round(executionTimeMs / 1000);
+    const executionTimeMin = Math.round(executionTimeSec / 60 * 10) / 10;
     const formattedTime = `${executionTimeMin} minutes (${executionTimeSec} seconds)`;
-    
+
     console.log(`\nTotal execution time: ${formattedTime}`);
-    
+
     // Send completion email
     console.log('Sending completion email...');
     const folderLink = `https://drive.google.com/drive/folders/${FOLDER_ID}`;
-    await sendSproutCompletionEmail(allResults, formattedTime, folderLink);
+    await sendSproutCompletionEmail(results, formattedTime, folderLink);
   } catch (err) {
     console.error('Error in sprout_posts:', err?.message || err);
   }
