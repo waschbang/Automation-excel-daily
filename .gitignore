@@ -73,6 +73,9 @@ jspm_packages/
 *.swo
 .claude/
 
+# Claude personal instructions (per-user, not shared)
+CLAUDE.md
+
 # OS generated files
 .DS_Store
 .DS_Store?
