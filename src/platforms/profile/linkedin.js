@@ -1,7 +1,7 @@
 /**
  * LinkedIn analytics processing module
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
 // Network types that should be processed as LinkedIn
 const LINKEDIN_NETWORK_TYPES = ['linkedin', 'linkedin_company'];

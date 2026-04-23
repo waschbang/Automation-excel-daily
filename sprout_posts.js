@@ -20,18 +20,18 @@ const { google } = require('googleapis');
 const path = require('path');
 
 // Utils
-const apiUtils = require('./utils/api');
-const sheetsUtils = require('./utils/sheets');
-const driveUtils = require('./utils/simple-drive');
-const groupUtils = require('./utils/groups');
-const { sendSproutCompletionEmail } = require('./utils/sproutEmailHelper');
+const apiUtils = require('./src/clients/sprout');
+const sheetsUtils = require('./src/clients/sheets');
+const driveUtils = require('./src/clients/drive');
+const groupUtils = require('./src/core/groupResolver');
+const { sendSproutCompletionEmail } = require('./src/reporting/emailReport');
 
 // Platform Post Modules
-const igPosts = require('./platforms/instagram_posts');
-const liPosts = require('./platforms/linkedin_posts');
-const fbPosts = require('./platforms/facebook_posts');
-const twPosts = require('./platforms/twitter_posts');
-const ytPosts = require('./platforms/youtube_posts');
+const igPosts = require('./src/platforms/post/instagram');
+const liPosts = require('./src/platforms/post/linkedin');
+const fbPosts = require('./src/platforms/post/facebook');
+const twPosts = require('./src/platforms/post/twitter');
+const ytPosts = require('./src/platforms/post/youtube');
 
 // API & Config (align with sprout_april.js)
 const CUSTOMER_ID = "2653573";
@@ -364,7 +364,7 @@ async function main() {
     console.log('Starting Post-level Analytics run');
 
     // Auth like sprout_april.js
-    const { authenticateWithEnv } = require('./utils/auth');
+    const { authenticateWithEnv } = require('./src/clients/googleAuth');
     const authResult = await authenticateWithEnv();
     const auth = authResult.auth;
     let drive = authResult.drive;

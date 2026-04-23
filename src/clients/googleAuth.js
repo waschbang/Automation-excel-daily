@@ -7,7 +7,7 @@
 const { google } = require('googleapis');
 const fs = require('fs');
 const path = require('path');
-const { getServiceAccountCredentials, getOAuthClientCredentials } = require('./env');
+const { getServiceAccountCredentials, getOAuthClientCredentials } = require('../config');
 
 /**
  * Authenticate with Google APIs using environment variables

@@ -1,7 +1,7 @@
 /**
  * YouTube analytics processing module
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
 // Sheet configuration
 const SHEET_NAME = 'Youtube';

@@ -1,4 +1,4 @@
-const { sendReportEmail } = require('./email');
+const { sendReportEmail } = require('../clients/mailer');
 
 /**
  * Sends a completion email for the Sprout Analytics script

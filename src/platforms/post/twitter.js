@@ -1,27 +1,31 @@
 /**
- * Instagram Post-level module
- * Builds headers dynamically (metrics keys as-is) plus standard post columns.
+ * Twitter/X Post-level module
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
-const SHEET_NAME = 'instagram_post';
-// Fixed metrics with display titles matching documentation
+const SHEET_NAME = 'twitter_post';
+// Human-readable headers with exact titles and corresponding keys
 const METRICS = [
-  { title: 'Comments', key: 'lifetime.comments_count' },
   { title: 'Impressions', key: 'lifetime.impressions' },
-  { title: 'Likes', key: 'lifetime.likes' },
-  { title: 'Reach', key: 'lifetime.impressions_unique' },
-  { title: 'Reactions', key: 'lifetime.reactions' },
-  { title: 'Reels Unique Session Plays', key: 'lifetime.reels_unique_session_plays' },
-  { title: 'Saves', key: 'lifetime.saves' },
-  { title: 'Shares', key: 'lifetime.shares_count' },
-  { title: 'SproutLink Clicks', key: 'lifetime.link_in_bio_clicks' },
-  { title: 'Story Exits', key: 'lifetime.story_exits' },
-  { title: 'Story Replies', key: 'lifetime.comments_count' },
-  { title: 'Story Taps Back', key: 'lifetime.story_taps_back' },
-  { title: 'Story Taps Forward', key: 'lifetime.story_taps_forward' },
+  { title: 'Media Views', key: 'lifetime.post_media_views' },
   { title: 'Video Views', key: 'lifetime.video_views' },
-  { title: 'Views', key: 'lifetime.views' },
+  { title: 'Reactions', key: 'lifetime.reactions' },
+  { title: 'Likes', key: 'lifetime.likes' },
+  { title: '@Replies', key: 'lifetime.comments_count' },
+  { title: 'Reposts', key: 'lifetime.shares_count' },
+  { title: 'Post Clicks (All)', key: 'lifetime.post_content_clicks' },
+  { title: 'Post Link Clicks', key: 'lifetime.post_link_clicks' },
+  { title: 'Other Post Clicks', key: 'lifetime.post_content_clicks_other' },
+  { title: 'Post Media Clicks', key: 'lifetime.post_media_clicks' },
+  { title: 'Post Hashtag Clicks', key: 'lifetime.post_hashtag_clicks' },
+  { title: 'Post Detail Expand Clicks', key: 'lifetime.post_detail_expand_clicks' },
+  { title: 'Profile Clicks', key: 'lifetime.post_profile_clicks' },
+  { title: 'Other Engagements', key: 'lifetime.engagements_other' },
+  { title: 'Follows from Posts', key: 'lifetime.post_followers_gained' },
+  { title: 'Unfollows from Posts', key: 'lifetime.post_followers_lost' },
+  { title: 'App Engagements', key: 'lifetime.post_app_engagements' },
+  { title: 'App Install Attempts', key: 'lifetime.post_app_installs' },
+  { title: 'App Opens', key: 'lifetime.post_app_opens' },
   { title: 'Positive Comments', key: 'lifetime.sentiment_comments_positive_count' },
   { title: 'Negative Comments', key: 'lifetime.sentiment_comments_negative_count' },
   { title: 'Neutral Comments', key: 'lifetime.sentiment_comments_neutral_count' },
@@ -29,7 +33,6 @@ const METRICS = [
   { title: 'Net Sentiment Score', key: 'lifetime.net_sentiment_score' }
 ];
 
-// Build headers: fixed columns + metric keys (as-is)
 function buildHeaders(metricList = METRICS) {
   const base = [
     'Created Time (UTC)',
@@ -69,13 +72,12 @@ function formatPostData(dataPoint, profileData, headers, truncate) {
   const metrics = dataPoint.metrics || {};
 
   const createdAt = parseIsoDate(dimensions, dataPoint);
-  const networkType = profileData?.network_type || 'instagram';
+  const networkType = profileData?.network_type || 'twitter';
   const profileName = profileData?.name || '';
   const profileId = String(profileData?.customer_profile_id || profileData?.profile_id || profileData?.id || '');
   const permaLink = dataPoint?.perma_link || get(dimensions, 'post_url', get(dataPoint, 'post_url', ''));
-  const text = truncate(String(dataPoint?.text || get(dimensions, 'message', get(dimensions, 'caption', get(dataPoint, 'message', '')))) || '', 500);
+  const text = truncate(String(dataPoint?.text || get(dimensions, 'message', get(dataPoint, 'message', '')) || ''), 500);
 
-  // Start row with base columns in the exact same order as buildHeaders base
   const row = [
     createdAt,
     networkType,
@@ -85,7 +87,6 @@ function formatPostData(dataPoint, profileData, headers, truncate) {
     text
   ];
 
-  // Then append metric values to match headers order
   for (const m of METRICS) {
     const val = metrics[m.key];
     row.push(safeNumber(val));

@@ -2,7 +2,7 @@
  * Sprout Social Groups and Profiles API utilities
  */
 const axios = require('axios');
-const { getSproutHeaders } = require('./api');
+const { getSproutHeaders } = require('../clients/sprout');
 
 /**
  * Get all customer groups from Sprout Social API

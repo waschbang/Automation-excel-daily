@@ -1,7 +1,7 @@
 /**
  * Instagram analytics processing module - FINAL CORRECTED VERSION
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
 // Network types that should be processed as Instagram
 const INSTAGRAM_NETWORK_TYPES = ['instagram', 'fb_instagram_account'];

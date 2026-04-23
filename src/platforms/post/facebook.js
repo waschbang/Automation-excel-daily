@@ -1,7 +1,7 @@
 /**
  * Facebook Post-level module
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
 const SHEET_NAME = 'facebook_post';
 // Human-readable headers with exact titles and corresponding keys

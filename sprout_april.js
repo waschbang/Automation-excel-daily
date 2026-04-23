@@ -13,11 +13,11 @@ const fs = require('fs');
 const { google } = require('googleapis');
 
 // Import utilities
-const apiUtils = require('./utils/api');
-const sheetsUtils = require('./utils/sheets');
-const driveUtils = require('./utils/simple-drive');
-const groupUtils = require('./utils/groups');
-const { sendSproutCompletionEmail } = require('./utils/sproutEmailHelper');
+const apiUtils = require('./src/clients/sprout');
+const sheetsUtils = require('./src/clients/sheets');
+const driveUtils = require('./src/clients/drive');
+const groupUtils = require('./src/core/groupResolver');
+const { sendSproutCompletionEmail } = require('./src/reporting/emailReport');
 const getCurrentDate = () => {
   const today = new Date();
   const yesterday = new Date(today);
@@ -68,11 +68,11 @@ async function retryWithBackoff(fn, {
 }
 
 // Import platform modules
-const instagram = require('./platforms/instagram');
-const youtube = require('./platforms/youtube');
-const linkedin = require('./platforms/linkedin');
-const facebook = require('./platforms/facebook');
-const twitter = require('./platforms/twitter');
+const instagram = require('./src/platforms/profile/instagram');
+const youtube = require('./src/platforms/profile/youtube');
+const linkedin = require('./src/platforms/profile/linkedin');
+const facebook = require('./src/platforms/profile/facebook');
+const twitter = require('./src/platforms/profile/twitter');
 
 // API & Authentication
 const CUSTOMER_ID = "2653573";
@@ -682,7 +682,7 @@ const main = async () => {
     
     try {
       // Use the new environment variable authentication
-      const { authenticateWithEnv } = require('./utils/auth');
+      const { authenticateWithEnv } = require('./src/clients/googleAuth');
       const authResult = await authenticateWithEnv();
       auth = authResult.auth;
       drive = authResult.drive;

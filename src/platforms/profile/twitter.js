@@ -1,7 +1,7 @@
 /**
  * Twitter/X analytics processing module - CORRECTED VERSION
  */
-const { safeNumber } = require('../utils/api');
+const { safeNumber } = require('../../clients/sprout');
 
 // Sheet configuration
 const SHEET_NAME = 'Twitter';
