@@ -1,15 +1,18 @@
 const nodemailer = require('nodemailer');
+const { getConfig } = require('../config');
+
+const _cfg = getConfig();
 
 const EMAIL_CONFIG = {
   service: 'gmail',
   auth: {
-    user: 'satharva2004@gmail.com',
-    pass: 'rcut bssf vhex sadm' // App password
-  }
+    user: _cfg.mail.user,
+    pass: _cfg.mail.password,
+  },
 };
 
-const FROM_EMAIL = 'satharva2004@gmail.com';
-const TO_EMAIL = ['atharva.sawant@schbang.com', 'ansh.shetty@schbang.com', 'yadnesh.rane@schbang.com'];
+const FROM_EMAIL = _cfg.mail.from;
+const TO_EMAIL = _cfg.mail.recipients;
 
 /**
  * Sends an email with the given subject, HTML content, and optional attachments

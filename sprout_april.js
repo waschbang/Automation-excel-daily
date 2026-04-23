@@ -75,9 +75,11 @@ const facebook = require('./src/platforms/profile/facebook');
 const twitter = require('./src/platforms/profile/twitter');
 
 // API & Authentication
-const CUSTOMER_ID = "2653573";
-const SPROUT_API_TOKEN = "MjY1MzU3M3wxNzUyMjE2ODQ5fDdmNzgxNzQyLWI3NWEtNDFkYS1hN2Y4LWRkMTE3ODRhNzBlNg==";
-const FOLDER_ID = '13XPLx5l1LuPeJL2Ue03ZztNQUsNgNW06';
+const { getConfig } = require('./src/config');
+const _cfg = getConfig();
+const CUSTOMER_ID = _cfg.sprout.customerId;
+const SPROUT_API_TOKEN = _cfg.sprout.apiToken;
+const FOLDER_ID = _cfg.drive.folderId;
 
 const date = getCurrentDate();
 // const START_DATE = date; // Single-day window ending 2 days ago
@@ -87,9 +89,9 @@ const END_DATE = date;
 const DESCRIPTION = '';
 
 // Sprout Social API endpoints
-const BASE_URL = "https://api.sproutsocial.com/v1";
-const METADATA_URL = `${BASE_URL}/${CUSTOMER_ID}/metadata/customer`;
-const ANALYTICS_URL = `${BASE_URL}/${CUSTOMER_ID}/analytics/profiles`;
+const BASE_URL = _cfg.sprout.baseUrl;
+const METADATA_URL = _cfg.sprout.metadataUrl;
+const ANALYTICS_URL = _cfg.sprout.analyticsUrl;
 
 /**
  * Process analytics data for a group
