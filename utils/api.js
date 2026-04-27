@@ -4,6 +4,35 @@
 const axios = require('axios');
 
 /**
+ * Split [startDate, endDate] (inclusive, ISO YYYY-MM-DD) into consecutive
+ * windows of at most maxDays each. Returns [{ start, end }, ...].
+ *
+ * Sprout's analytics endpoints reject ranges longer than ~365 days; we use
+ * this to chunk the request and merge results, instead of silently
+ * clamping (the old behaviour, which lost data after the first year).
+ */
+function buildDateChunks(startDate, endDate, maxDays) {
+  const fmt = (d) => {
+    const yyyy = d.getUTCFullYear();
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+  const end = new Date(`${endDate}T00:00:00Z`);
+  let cursor = new Date(`${startDate}T00:00:00Z`);
+  const chunks = [];
+  while (cursor.getTime() <= end.getTime()) {
+    const chunkEnd = new Date(cursor.getTime());
+    chunkEnd.setUTCDate(chunkEnd.getUTCDate() + (maxDays - 1));
+    if (chunkEnd.getTime() > end.getTime()) chunkEnd.setTime(end.getTime());
+    chunks.push({ start: fmt(cursor), end: fmt(chunkEnd) });
+    cursor = new Date(chunkEnd.getTime());
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return chunks;
+}
+
+/**
  * Execute an axios request with exponential backoff and jitter
  * @param {Function} fn - async function returning axios response
  * @param {string} opName - operation name for logging
@@ -145,27 +174,21 @@ const getAnalyticsData = async (analyticsUrl, token, startDate, endDate, profile
     return null;
   }
   
-  // Ensure the date range is one year or less as required by the API
-  const startDateObj = new Date(startDate);
-  const endDateObj = new Date(endDate);
-  
-  // Calculate the difference in milliseconds
-  const dateDiff = endDateObj.getTime() - startDateObj.getTime();
-  // Convert to days
-  const daysDiff = dateDiff / (1000 * 60 * 60 * 24);
-  
-  // If the date range is more than 365 days, limit it to one year
-  // If the date range is more than 365 days, limit it to one year
-let effectiveEndDate = endDate;
-if (daysDiff > 365) {
-  const oneYearLater = new Date(startDateObj);
-  oneYearLater.setFullYear(oneYearLater.getFullYear() + 1);
-  oneYearLater.setDate(oneYearLater.getDate() - 1); // Subtract one day to stay within one year
-  effectiveEndDate = oneYearLater.toISOString().split('T')[0];
-  console.log(`Date range exceeds one year. Limiting to: ${startDate} to ${effectiveEndDate}`);
-}
-  
-  console.log(`Processing data for range: ${startDate} to ${effectiveEndDate}`);
+  // Sprout's analytics endpoint accepts at most ~365 days per request.
+  // Previously we silently clamped any longer range; that meant a run with
+  // START_DATE=2025-04-01 and END_DATE=2026-04-21 was being trimmed to
+  // 2026-03-31, dropping all April 2026 data.
+  // Now we split the range into ≤365-day chunks and merge the results.
+  const dateChunks = buildDateChunks(startDate, endDate, 365);
+  if (dateChunks.length > 1) {
+    console.log(
+      `Date range ${startDate}..${endDate} exceeds Sprout's per-request limit; ` +
+      `splitting into ${dateChunks.length} chunks: ` +
+      dateChunks.map(c => `${c.start}..${c.end}`).join(', ')
+    );
+  } else {
+    console.log(`Processing data for range: ${startDate} to ${endDate} (single chunk)`);
+  }
   console.log(`Using ${validProfileIds.length} valid profile IDs`);
   
   // Create individual API requests for each profile ID to ensure compatibility
@@ -173,15 +196,16 @@ if (daysDiff > 365) {
   
   // Process each profile ID individually to ensure API compatibility
   for (const profileId of validProfileIds) {
+   for (const chunk of dateChunks) {
     try {
-      console.log(`\n=== API CALL: Processing analytics for profile ID: ${profileId} ===`);
-      
+      console.log(`\n=== API CALL: profile ${profileId} chunk ${chunk.start}..${chunk.end} ===`);
+
       // Format the payload for an individual profile ID
       // The API expects dates in the format 'reporting_period.in(2024-01-01...2024-12-31)'
       const payload = {
         "filters": [
           `customer_profile_id.eq(${profileId})`,
-          `reporting_period.in(${startDate}...${effectiveEndDate})`
+          `reporting_period.in(${chunk.start}...${chunk.end})`
         ],
         "metrics": [
           // Followers/Fans
@@ -283,36 +307,41 @@ if (daysDiff > 365) {
       
       const response = await requestWithRetry(
         () => axios.post(analyticsUrl, payload, { headers: getSproutHeaders(token) }),
-        `analytics profile ${profileId}`
+        `analytics profile ${profileId} chunk ${chunk.start}..${chunk.end}`
       );
       if (!response) {
-        console.warn(`Skipping profile ${profileId} due to repeated request failures.`);
-        // Add protective cool-down before next profile
+        console.warn(`Skipping profile ${profileId} chunk ${chunk.start}..${chunk.end} due to repeated request failures.`);
+        // Add protective cool-down before continuing
         await sleep(1500 + Math.floor(Math.random()*1000));
         continue;
       }
-      
+
       if (response.data && response.data.data && response.data.data.length > 0) {
-        console.log(`Received ${response.data.data.length} data points for profile ${profileId}`);
+        console.log(`Received ${response.data.data.length} data points for profile ${profileId} chunk ${chunk.start}..${chunk.end}`);
         allResults.data = [...allResults.data, ...response.data.data];
       } else {
-        console.warn(`No analytics data found for profile ${profileId}`);
+        console.warn(`No analytics data for profile ${profileId} in chunk ${chunk.start}..${chunk.end}`);
       }
-      
-      // Safer delay between requests to avoid rate limiting (with jitter)
-      const delayMs = 1200 + Math.floor(Math.random() * 800);
-      console.log(`Delay ${delayMs}ms before next profile to avoid rate limits...`);
-      await sleep(delayMs);
-      
+
+      // Inter-chunk delay (per profile) — kinder to Sprout's rate limit
+      const chunkDelayMs = 800 + Math.floor(Math.random() * 600);
+      await sleep(chunkDelayMs);
+
     } catch (error) {
-      console.error(`Error getting analytics data for profile ${profileId}: ${error.message}`);
+      console.error(`Error getting analytics for profile ${profileId} chunk ${chunk.start}..${chunk.end}: ${error.message}`);
       if (error.response) {
-        console.error(`API Error Response for profile ${profileId}:`, {
+        console.error(`API Error Response:`, {
           status: error.response.status,
           data: JSON.stringify(error.response.data)
         });
       }
     }
+   } // end chunk loop
+
+   // Inter-profile cool-down (with jitter) to avoid rate-limit bursts
+   const delayMs = 1200 + Math.floor(Math.random() * 800);
+   console.log(`Delay ${delayMs}ms before next profile to avoid rate limits...`);
+   await sleep(delayMs);
   }
   
   console.log(`Total data points collected across all profiles: ${allResults.data.length}`);

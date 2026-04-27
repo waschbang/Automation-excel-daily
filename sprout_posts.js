@@ -233,6 +233,47 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
     profilesByNetwork[net].push(p);
   }
 
+  // === INCREMENTAL FETCH ===
+  // Determine the *_post tabs we will touch, then read each one's max date
+  // and start from max(earliestTabMax - 14 days, START_DATE). To force a
+  // full re-fetch on demand: BACKFILL=1 node sprout_posts.js
+  const expectedTabs = Object.keys(profilesByNetwork)
+    .map((net) => postModules[net] && postModules[net].SHEET_NAME)
+    .filter(Boolean);
+  let effectiveStart = START_DATE;
+  if (process.env.BACKFILL === '1' || process.env.BACKFILL === 'true') {
+    console.log(`[posts][incremental] BACKFILL=1 — forcing full backfill from ${START_DATE}`);
+  } else {
+    let earliestTabMax = null;
+    let anyEmpty = expectedTabs.length === 0;
+    for (const tab of expectedTabs) {
+      try {
+        const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${tab}!A:A` });
+        const rows = (r.data.values || []).slice(1);
+        let tabMax = null;
+        for (const row of rows) {
+          const iso = normalizeSheetDateCell(row && row[0]);
+          if (iso && (tabMax == null || iso > tabMax)) tabMax = iso;
+        }
+        if (tabMax == null) { anyEmpty = true; break; }
+        if (earliestTabMax == null || tabMax < earliestTabMax) earliestTabMax = tabMax;
+      } catch (e) {
+        // Tab doesn't exist yet (first time we touch this network for this group) — full backfill.
+        anyEmpty = true;
+        break;
+      }
+    }
+    if (!anyEmpty && earliestTabMax) {
+      const d = new Date(`${earliestTabMax}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - 14);
+      const candidate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+      effectiveStart = candidate < START_DATE ? START_DATE : candidate;
+      console.log(`[posts][incremental] ${groupName}: max-existing=${earliestTabMax}, fetching from ${effectiveStart} (would have been ${START_DATE})`);
+    } else {
+      console.log(`[posts][incremental] ${groupName}: empty/missing tab → full backfill from ${START_DATE}`);
+    }
+  }
+
   // Ensure tabs exist with headers later
   const createdTabs = new Set();
 
@@ -245,7 +286,7 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
       const profileId = profile.customer_profile_id;
       const mod = postModules[net];
       const metrics = mod && Array.isArray(mod.METRICS) ? mod.METRICS.map(m => m.key) : undefined;
-      const data = await fetchPostsForProfile(profileId, START_DATE, END_DATE, metrics);
+      const data = await fetchPostsForProfile(profileId, effectiveStart, END_DATE, metrics);
       for (const dp of data) {
         // Attach resolved basics for formatting later
         postsByNetwork[net].push({ dataPoint: dp, profile });
@@ -288,7 +329,7 @@ async function processGroup(groupId, groupName, profiles, googleClients) {
       const existingValues = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${sheetName}!A:AZ` });
       const rows = existingValues.data.values || [];
       if (rows.length > 0) {
-        const dateSet = buildDateSet(START_DATE, END_DATE);
+        const dateSet = buildDateSet(effectiveStart, END_DATE);
         const rowsToClear = [];
         for (let i = 1; i < rows.length; i++) {
           const normalized = normalizeSheetDateCell(rows[i] && rows[i][0]);

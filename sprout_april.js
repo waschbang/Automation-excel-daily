@@ -407,10 +407,51 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       return '';
     }
     
+    // === INCREMENTAL FETCH ===
+    // Read the latest date already in each tab; only fetch from
+    //   max(earliest_tab_max - 14 days, START_DATE)
+    // forward. The 14-day overlap captures Meta/YouTube's retroactive metric
+    // revisions. If any tab is empty (or unreadable), fall back to the full
+    // configured backfill range. To force a full re-fetch on demand:
+    //   BACKFILL=1 node sprout_april.js
+    let effectiveStart = START_DATE;
+    if (process.env.BACKFILL === '1' || process.env.BACKFILL === 'true') {
+      console.log(`[incremental] BACKFILL=1 — forcing full backfill from ${START_DATE}`);
+    } else {
+      let earliestTabMax = null;
+      let anyEmpty = createdSheets.length === 0;
+      for (const sheetName of createdSheets) {
+        try {
+          const r = await sheets.spreadsheets.values.get({ spreadsheetId, range: `${sheetName}!A:A` });
+          const rows = (r.data.values || []).slice(1);
+          let tabMax = null;
+          for (const row of rows) {
+            const iso = normalizeSheetDateCell(row && row[0]);
+            if (iso && (tabMax == null || iso > tabMax)) tabMax = iso;
+          }
+          if (tabMax == null) { anyEmpty = true; break; }
+          if (earliestTabMax == null || tabMax < earliestTabMax) earliestTabMax = tabMax;
+        } catch (e) {
+          console.warn(`[incremental] could not read ${sheetName} for max-date: ${e.message}`);
+          anyEmpty = true;
+          break;
+        }
+      }
+      if (!anyEmpty && earliestTabMax) {
+        const d = new Date(`${earliestTabMax}T00:00:00Z`);
+        d.setUTCDate(d.getUTCDate() - 14);
+        const candidate = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
+        effectiveStart = candidate < START_DATE ? START_DATE : candidate;
+        console.log(`[incremental] ${groupName}: max-existing=${earliestTabMax}, fetching from ${effectiveStart} (would have been ${START_DATE})`);
+      } else {
+        console.log(`[incremental] ${groupName}: empty/unreadable tab → full backfill from ${START_DATE}`);
+      }
+    }
+
     // Fetch analytics data for all profiles in this group
     const profileIds = profiles.map(p => p.customer_profile_id).filter(id => id);
-    console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName} from ${START_DATE} to ${END_DATE}`);
-    
+    console.log(`Fetching analytics data for ${profileIds.length} profiles in group ${groupName} from ${effectiveStart} to ${END_DATE}`);
+
     // Always update data even if today's data exists
     console.log(`Fetching fresh data for ${getCurrentDate()} to update spreadsheet`);
     
@@ -428,7 +469,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
         if (rows.length === 0) continue;
 
         // Build a set of all dates in the configured range to be overwritten
-        const dateSet = buildDateSet(START_DATE, END_DATE);
+        const dateSet = buildDateSet(effectiveStart, END_DATE);
 
         // Find rows whose first cell (Date) matches any date in the range
         const rowsToClear = [];
@@ -442,7 +483,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
         }
 
         if (rowsToClear.length > 0) {
-          console.log(`Found ${rowsToClear.length} existing row(s) within ${START_DATE}..${END_DATE} in sheet "${sheetName}". Deleting them (batched).`);
+          console.log(`Found ${rowsToClear.length} existing row(s) within ${effectiveStart}..${END_DATE} in sheet "${sheetName}". Deleting them (batched).`);
           // Coalesce consecutive rows into ranges (1-indexed), then delete as row dimension ranges (0-indexed)
           rowsToClear.sort((a, b) => a - b);
           const ranges = [];
@@ -492,7 +533,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
 
           console.log(`Removed ${ranges.length} contiguous range(s) for sheet "${sheetName}".`);
         } else {
-          console.log(`No existing rows to clear for ${sheetName} within ${START_DATE}..${END_DATE}.`);
+          console.log(`No existing rows to clear for ${sheetName} within ${effectiveStart}..${END_DATE}.`);
         }
       }
     } catch (error) {
@@ -503,22 +544,22 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
     const analyticsData = await apiUtils.getAnalyticsData(
       ANALYTICS_URL,
       SPROUT_API_TOKEN,
-      START_DATE,
+      effectiveStart,
       END_DATE,
       profileIds
     );
-    
+
     // Log the raw data for debugging
     console.log(`Received ${analyticsData?.data?.length || 0} data points from API`);
-    
+
     if (!analyticsData || !analyticsData.data || analyticsData.data.length === 0) {
-      console.warn(`No analytics data found for group ${groupName} in period ${START_DATE} to ${END_DATE}`);
+      console.warn(`No analytics data found for group ${groupName} in period ${effectiveStart} to ${END_DATE}`);
       return [{
         groupId,
         groupName,
         folderId: FOLDER_ID,
         description: DESCRIPTION,
-        dateRange: `${START_DATE} to ${END_DATE}`,
+        dateRange: `${effectiveStart} to ${END_DATE}`,
         profileCount: profiles.length,
         spreadsheetId,
         spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,
@@ -650,7 +691,7 @@ const processGroupAnalytics = async (groupId, groupName, profiles, googleClients
       groupName,
       folderId: FOLDER_ID,
       description: DESCRIPTION,
-      dateRange: `${START_DATE} to ${END_DATE}`,
+      dateRange: `${effectiveStart} to ${END_DATE}`,
       profileCount: profiles.length,
       spreadsheetId,
       spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit`,

@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git tag *)",
+      "Bash(git mv *)",
+      "Bash(git checkout *)",
+      "Bash(node -c sprout_april.js)",
+      "Bash(node -c sprout_posts.js)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node -e ' *)",
+      "Bash(npm install *)",
+      "Bash(git reset *)",
+      "Bash(git rm *)",
+      "Bash(git commit *)",
+      "Bash(git log *)",
+      "Bash(node -c src/config/index.js)",
+      "Bash(node -c src/clients/mailer.js)",
+      "Bash(set -e)",
+      "Bash(node -c bin/run.js)",
+      "Bash(node -c src/pipelines/profileMetrics.js)",
+      "Bash(node -c src/pipelines/postMetrics.js)",
+      "Bash(node -c src/clients/drive.js)",
+      "Bash(node -c scripts/rename-drive-files.js)",
+      "Bash(node -c src/core/dateRange.js)",
+      "Bash(node -c src/reporting/summary.js)",
+      "Bash(node -c src/clients/sprout.js)",
+      "Bash(node -c src/reporting/emailReport.js)",
+      "Bash(node -c scripts/_mail-alert.js)",
+      "Bash(bash -n scripts/healthcheck.sh)",
+      "Bash(npm test *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(node -c utils/api.js)"
+    ]
+  }
+}
