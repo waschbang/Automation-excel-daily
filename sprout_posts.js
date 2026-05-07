@@ -143,44 +143,55 @@ async function fetchPostsForProfile(profileId, startDate, endDate, metrics) {
   const hdrs = apiUtils.getSproutHeaders(SPROUT_API_TOKEN);
   const metricList = Array.isArray(metrics) && metrics.length ? metrics : undefined;
 
-  const variants = [
-    { label: 'created_time + metrics', filters: [`customer_profile_id.eq(${profileId})`, `created_time.in(${startDate}...${endDate})`], metrics: metricList },
-    { label: 'created_time (no metrics)', filters: [`customer_profile_id.eq(${profileId})`, `created_time.in(${startDate}...${endDate})`], metrics: undefined },
-    { label: 'reporting_period + metrics', filters: [`customer_profile_id.eq(${profileId})`, `reporting_period.in(${startDate}...${endDate})`], metrics: metricList },
-    { label: 'reporting_period (no metrics)', filters: [`customer_profile_id.eq(${profileId})`, `reporting_period.in(${startDate}...${endDate})`], metrics: undefined }
-  ];
+  // Sprout posts endpoint also caps ranges at ~365 days; chunk and merge.
+  const chunks = apiUtils.buildDateChunks(startDate, endDate, 365);
+  const merged = [];
 
-  for (const v of variants) {
-    const payload = {
-      filters: v.filters,
-      fields: [
-        'created_time',
-        'perma_link',
-        'text',
-        'internal.tags.id',
-        'internal.sent_by.id',
-        'internal.sent_by.email',
-        'internal.sent_by.first_name',
-        'internal.sent_by.last_name'
-      ],
-      timezone: 'America/Chicago',
-      page: 1
-    };
-    if (v.metrics) payload.metrics = v.metrics;
-    try {
-      const resp = await apiUtils.requestWithRetry(
-        () => axios.post(POSTS_URL, payload, { headers: hdrs }),
-        `posts profile ${profileId} (${v.label})`
-      );
-      const arr = resp?.data?.data || [];
-      console.log(`[Posts] profile=${profileId} variant="${v.label}" -> count=${arr.length}`);
-      if (arr.length > 0) return arr;
-    } catch (_) {
-      // requestWithRetry already logs; continue to next variant
+  for (const { start: chunkStart, end: chunkEnd } of chunks) {
+    const variants = [
+      { label: 'created_time + metrics', filters: [`customer_profile_id.eq(${profileId})`, `created_time.in(${chunkStart}...${chunkEnd})`], metrics: metricList },
+      { label: 'created_time (no metrics)', filters: [`customer_profile_id.eq(${profileId})`, `created_time.in(${chunkStart}...${chunkEnd})`], metrics: undefined },
+      { label: 'reporting_period + metrics', filters: [`customer_profile_id.eq(${profileId})`, `reporting_period.in(${chunkStart}...${chunkEnd})`], metrics: metricList },
+      { label: 'reporting_period (no metrics)', filters: [`customer_profile_id.eq(${profileId})`, `reporting_period.in(${chunkStart}...${chunkEnd})`], metrics: undefined }
+    ];
+
+    let chunkData = [];
+    for (const v of variants) {
+      const payload = {
+        filters: v.filters,
+        fields: [
+          'created_time',
+          'perma_link',
+          'text',
+          'internal.tags.id',
+          'internal.sent_by.id',
+          'internal.sent_by.email',
+          'internal.sent_by.first_name',
+          'internal.sent_by.last_name'
+        ],
+        timezone: 'America/Chicago',
+        page: 1
+      };
+      if (v.metrics) payload.metrics = v.metrics;
+      try {
+        const resp = await apiUtils.requestWithRetry(
+          () => axios.post(POSTS_URL, payload, { headers: hdrs }),
+          `posts profile ${profileId} ${chunkStart}..${chunkEnd} (${v.label})`
+        );
+        const arr = resp?.data?.data || [];
+        console.log(`[Posts] profile=${profileId} chunk=${chunkStart}..${chunkEnd} variant="${v.label}" -> count=${arr.length}`);
+        if (arr.length > 0) { chunkData = arr; break; }
+      } catch (_) {
+        // requestWithRetry already logs; continue to next variant
+      }
     }
+    if (chunkData.length === 0) {
+      console.warn(`[Posts] profile=${profileId} no data for any variant in ${chunkStart}..${chunkEnd}`);
+    }
+    merged.push(...chunkData);
+    await sleep(800 + Math.floor(Math.random() * 400));
   }
-  console.warn(`[Posts] profile=${profileId} returned no data for any variant in ${startDate}..${endDate}`);
-  return [];
+  return merged;
 }
 
 function truncate(str, max = 500) {

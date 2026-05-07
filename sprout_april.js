@@ -895,8 +895,21 @@ process.on('unhandledRejection', (reason, promise) => {
   // Don't exit the process - allow it to continue
 });
 
-// Run the main function with comprehensive error handling
-main().catch(err => {
-  console.error('Unhandled error in main function:', err);
-  console.error('Script execution completed with errors, but did not crash.');
-});
+module.exports = {
+  processGroupAnalytics,
+  CUSTOMER_ID,
+  SPROUT_API_TOKEN,
+  FOLDER_ID,
+  BASE_URL,
+  ANALYTICS_URL,
+  START_DATE,
+  END_DATE,
+};
+
+// Run the main function only when invoked directly
+if (require.main === module) {
+  main().catch(err => {
+    console.error('Unhandled error in main function:', err);
+    console.error('Script execution completed with errors, but did not crash.');
+  });
+}

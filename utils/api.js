@@ -545,5 +545,6 @@ module.exports = {
   getAnalyticsDataWithJsonPayload,
   requestWithRetry,
   sleep,
-  safeNumber
+  safeNumber,
+  buildDateChunks
 };
